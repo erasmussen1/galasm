@@ -145,7 +145,7 @@ UBYTE* fbuff;
 ** remarks: This function does assemble a *.pld file.
 ******************************************************************************/
 
-int AssemblePldFile(char* file, struct Config* cfg) {
+int AssemblePldFile(const char* file, unsigned char *fbuff2 ,int size2, struct Config* cfg) {
     UBYTE chr;
     UBYTE *bool_start, *oldptr;
     char prevOp;
@@ -159,24 +159,23 @@ int AssemblePldFile(char* file, struct Config* cfg) {
     int num_of_col, fsize;
 
     {
-        fsize = FileSize(file);
+        fsize = size2; // FileSize(file);
 
-        if ((fbuff = malloc(fsize))) {
-            if ((ReadFile(file, fsize, fbuff))) {
+        fbuff = fbuff2; // malloc(fsize);
+        if (fbuff) {
+            int rc2 = 1; // ReadFile(file, fsize, fbuff);
+            if (rc2) {
                 actptr = fbuff;
                 buffend = fbuff + fsize;
                 linenum = 1;
 
-/* This code generates a warning about exceeding array bounds */
-#if 0
-                    for (n = 0; n < sizeof(Jedec); n++)
-                    {                            /* init. JEDEC structure */
-                        if (n < LOGIC22V10_SIZE)
-                            Jedec.GALLogic[n] = 1;         /* set fuses */
-                        else
-                            Jedec.GALLogic[n] = 0;         /* clear ACW... */
-                    }
-#endif
+                for (n = 0; n < (int)sizeof(Jedec.GALLogic); n++) { /* init. JEDEC structure */
+                    if (n < LOGIC22V10_SIZE)
+                        Jedec.GALLogic[n] = 1; /* set fuses */
+                    else
+                        Jedec.GALLogic[n] = 0; /* clear ACW... */
+                }
+
                 /* I think this is what is intended: GALLogic is set to 1s, rest is cleared */
                 memset(&Jedec, 0, sizeof(Jedec));
                 memset(Jedec.GALLogic, 1, sizeof(Jedec.GALLogic));
@@ -486,7 +485,6 @@ int AssemblePldFile(char* file, struct Config* cfg) {
                                     }
                                 }
                             }
-
 
                             if (!modus) /* still no mode? */
                             {
@@ -1320,7 +1318,7 @@ int AssemblePldFile(char* file, struct Config* cfg) {
                 /* set flag, so that we can see that  */
                 /* this file is assembled succesfully */
 
-                free(fbuff);
+           //     free(fbuff); <====================================================
 
 
                 /*** now make the selected files ***/

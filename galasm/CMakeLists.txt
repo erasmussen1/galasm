@@ -2,10 +2,10 @@ project(galasm2)
 
 add_library(${PROJECT_NAME}
     src/galasm2.c
-    #galasm.c
-    #jedec.c
-    #localize.c
-    #support.c
+    src/galasm.c
+    src/jedec.c
+    src/localize.c
+    src/support.c
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)

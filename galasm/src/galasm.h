@@ -232,6 +232,7 @@ extern char* AsmErrorArray[];
 
 /*************************** function declartions ****************************/
 
+int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, struct Config* cfg);
 
 /*GALasm .c */
 void SetAND(int row, int pinnum, int negation, int gal_type);
@@ -251,9 +252,9 @@ void Is_AR_SP(UBYTE* ptr);
 
 
 /* support.c */
-char* GetBaseName(char* filename);
-int FileSize(char* filename);
-int ReadFile(char* filename, int filesize, UBYTE* filebuff);
+char* GetBaseName(const char* filename);
+int FileSize(const char* filename);
+int ReadFile(const char* filename, int filesize, UBYTE* filebuff);
 int AddByte(struct ActBuffer* buff, UBYTE code);
 int AddString(struct ActBuffer* buff, UBYTE* strnptr);
 void IncPointer(struct ActBuffer* buff);

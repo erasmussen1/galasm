@@ -9,6 +9,7 @@
 ******************************************************************************/
 
 #include "galasm.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -24,14 +25,10 @@
 ** remarks: the returned pointer must be free()ed
 **
 ******************************************************************************/
+char* GetBaseName(const char* filename) {
+    int c = strlen(filename);
 
-char* GetBaseName(char* filename) {
-    int c, n;
-
-    char* p;
-
-    c = strlen(filename);
-
+    int n;
     for (n = c; n != 0; n--) {
         if (filename[n - 1] == '.') {
             n--;
@@ -39,16 +36,19 @@ char* GetBaseName(char* filename) {
         }
     }
 
-    if (n == 0)
+    if (n == 0) {
         n = c;
+    }
 
-    if ((p = (char*)malloc(n + 5))) {
-        strncpy(p, filename, n);
-        p[n + 4] = '\0';
+    char* p = (char*)malloc(n + 5);
+    if (!p) {
+        return NULL;
+    }
 
-        return (p);
-    } else
-        return (NULL);
+    strncpy(p, filename, n);
+    p[n + 4] = '\0';
+
+    return (p);
 }
 
 
@@ -65,21 +65,18 @@ char* GetBaseName(char* filename) {
 **
 ******************************************************************************/
 
-int FileSize(char* filename) {
-    FILE* fp;
+int FileSize(const char* filename) {
+    FILE* fp = fopen(filename, "r");
+    if (!fp) {
+        return -1;
+    }
 
-    int size;
+    fseek(fp, 0, SEEK_END);
+    int size = ftell(fp);
 
-    if ((fp = fopen(filename, "r"))) {
-        fseek(fp, 0, SEEK_END);
+    fclose(fp);
 
-        size = ftell(fp);
-
-        fclose(fp);
-    } else
-        return (-1);
-
-    return (size);
+    return size;
 }
 
 /******************************************************************************
@@ -96,7 +93,7 @@ int FileSize(char* filename) {
 **
 ******************************************************************************/
 
-int ReadFile(char* filename, int filesize, UBYTE* filebuff) {
+int ReadFile(const char* filename, int filesize, UBYTE* filebuff) {
     int actlen;
     FILE* fp;
 
@@ -108,6 +105,7 @@ int ReadFile(char* filename, int filesize, UBYTE* filebuff) {
         if (actlen == filesize)
             return (TRUE);
     }
+
     return (FALSE);
 }
 
