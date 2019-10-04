@@ -105,6 +105,7 @@ set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 set(INSTALL_TEST_DIR "${CMAKE_INSTALL_PREFIX}/test")
 
+add_subdirectory(galasm)
 add_subdirectory(galasm_main)
 
 # This section generates a install package
