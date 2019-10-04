@@ -1,0 +1,12 @@
+// This file is used by cmake
+#ifndef ___VERSION_H___
+#define ___VERSION_H___
+
+#define GIT_BRANCH      "@GIT_BRANCH@"
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
+#define Package_VERSION_MAJOR "@Package_VERSION_MAJOR@"
+#define Package_VERSION_MINOR "@Package_VERSION_MINOR@"
+#define Package_VERSION_PATCH "@Package_VERSION_PATCH@"
+
+#endif // ___VERSION_H___
