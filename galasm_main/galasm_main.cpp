@@ -3,9 +3,10 @@
 
 #include <getopt.h>
 
-#include <galasm/galasm.h>
+#include <galasm/galasm2.h>
 
 #include "ProjectVersion.h"
+
 
 struct Options {
     std::string filename;

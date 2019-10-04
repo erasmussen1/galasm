@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-#include "galasm/galasm.h"
+#include "galasm/galasm2.h"
 
 
 

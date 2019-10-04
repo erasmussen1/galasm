@@ -1,5 +1,5 @@
 
-#include <galasm/galasm.h>
+#include <galasm/galasm2.h>
 
 int assemblePldFile(
     const char* filename, int GenFuse, int GenChip, int GenPin, int JedecSecBit, int JedecFuseChk) {
