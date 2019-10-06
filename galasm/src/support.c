@@ -9,7 +9,6 @@
 ******************************************************************************/
 
 #include "galasm.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,10 +24,14 @@
 ** remarks: the returned pointer must be free()ed
 **
 ******************************************************************************/
-char* GetBaseName(const char* filename) {
-    int c = strlen(filename);
 
-    int n;
+char* GetBaseName(const char* filename) {
+    int c, n;
+
+    char* p;
+
+    c = strlen(filename);
+
     for (n = c; n != 0; n--) {
         if (filename[n - 1] == '.') {
             n--;
@@ -36,19 +39,16 @@ char* GetBaseName(const char* filename) {
         }
     }
 
-    if (n == 0) {
+    if (n == 0)
         n = c;
-    }
 
-    char* p = (char*)malloc(n + 5);
-    if (!p) {
-        return NULL;
-    }
+    if ((p = (char*)malloc(n + 5))) {
+        strncpy(p, filename, n);
+        p[n + 4] = '\0';
 
-    strncpy(p, filename, n);
-    p[n + 4] = '\0';
-
-    return (p);
+        return (p);
+    } else
+        return (NULL);
 }
 
 
@@ -66,17 +66,20 @@ char* GetBaseName(const char* filename) {
 ******************************************************************************/
 
 int FileSize(const char* filename) {
-    FILE* fp = fopen(filename, "r");
-    if (!fp) {
-        return -1;
-    }
+    FILE* fp;
 
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
+    int size;
 
-    fclose(fp);
+    if ((fp = fopen(filename, "r"))) {
+        fseek(fp, 0, SEEK_END);
 
-    return size;
+        size = ftell(fp);
+
+        fclose(fp);
+    } else
+        return (-1);
+
+    return (size);
 }
 
 /******************************************************************************
@@ -105,7 +108,6 @@ int ReadFile(const char* filename, int filesize, UBYTE* filebuff) {
         if (actlen == filesize)
             return (TRUE);
     }
-
     return (FALSE);
 }
 

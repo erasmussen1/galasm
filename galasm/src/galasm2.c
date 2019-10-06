@@ -46,14 +46,13 @@ int assemblePldMemory(const char* filename,
                       int GenPin,
                       int JedecSecBit,
                       int JedecFuseChk) {
-
     struct Config cfg;
-    cfg.GenFuse = 1;     /* generate fuse file?        */
-    cfg.GenChip = 1;     /* generate chip file?        */
-    cfg.GenPin = 1;      /* generate pin file?         */
-    cfg.JedecSecBit = 0; /* set security bit in JEDEC? */
-    cfg.JedecFuseChk = 0;
+    cfg.GenFuse = GenFuse;
+    cfg.GenChip = GenChip;
+    cfg.GenPin = GenPin;
+    cfg.JedecSecBit = JedecSecBit;
+    cfg.JedecFuseChk = JedecFuseChk;
 
-    int rc = AssemblePldFile(filename, fbuff2, size2, &cfg);
-    return rc;
+    return AssemblePldFile(filename, fbuff2, size2, &cfg);
 }
+
