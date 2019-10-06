@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 option(RELEASE_BUILD "Release build " OFF)
 option(BUILD_UNITTEST "Build unittests " OFF)
-option(BUILD_SHARED  "Build as shared library" ON)
+option(BUILD_SHARED  "Build as shared library" OFF)
 option(ENABLE_SANITIZER "Enable address sanitizer" OFF)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
@@ -20,6 +20,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if (BUILD_UNITTEST)
   enable_testing()
+endif()
+
+if (BUILD_SHARED)
+  set(LIBRARY_TYPE "SHARED")
+else()
+    set(LIBRARY_TYPE "STATIC")
 endif()
 
 execute_process(
