@@ -64,25 +64,54 @@ bool readFileToBuffer(const char* filename, int filesize, unsigned char* filebuf
     return (actlen == filesize);
 }
 
-struct MatrixFixture : public testing::Test {
-    MatrixFixture() {
+struct GalasmFixture : public testing::Test {
+    GalasmFixture() {
         //
     }
 
-    ~MatrixFixture() {
+    ~GalasmFixture() {
         //
     }
 };
 
-TEST(MatrixFixture, GenerateCounterPLD_new) {
+TEST_F(GalasmFixture, GAL22V10_PLD) {
+    int N = fileSize("GAL22V10.pld");
+
+    std::vector<unsigned char> v(N, 0x00);
+    int rc = readFileToBuffer("GAL22V10.pld", N, v.data());
+
+    rc = assemblePldMemory("Y22V10o.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    EXPECT_TRUE(rc >= 0) << rc << "\n";
+
+    EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "Y22V10o.jed"));
+}
+
+TEST_F(GalasmFixture, GenerateCounter_PLD) {
     int N = fileSize("Counter.pld");
 
     std::vector<unsigned char> v(N, 0x00);
     int rc = readFileToBuffer("Counter.pld", N, v.data());
 
-    rc = assemblePldMemory("Counter2.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("Countero.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
     EXPECT_TRUE(rc >= 0) << rc << "\n";
 
-    EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter2.jed"));
+    EXPECT_TRUE(compareTwoFiles("Counter.jed", "Countero.jed"));
 }
 
+TEST_F(GalasmFixture, GAL20RA10_PLD) {
+    int N = fileSize("GAL20RA10.pld");
+
+    std::vector<unsigned char> v(N, 0x00);
+    int rc = readFileToBuffer("GAL20RA10.pld", N, v.data());
+
+    rc = assemblePldMemory("X20RA10o.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    EXPECT_TRUE(rc >= 0) << rc << "\n";
+
+    EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "X20RA10o.jed"));
+}
+
+
+//  GAL22V10.pld
+//  Gatter.pld
+//  Tristate.pld
+//
