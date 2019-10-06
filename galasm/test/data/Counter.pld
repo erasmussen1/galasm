@@ -1,20 +1,12 @@
-#include <iostream>
-#include <string>
-#include <tuple>
-#include <vector>
-
-#include "gtest/gtest.h"
-
-#include "galasm/galasm2.h"
-
-
-
-std::string counterPLD = R"(GAL16V8    ; 4-Bit-Counter  first line : used GAL
+GAL16V8    ; 4-Bit-Counter  first line : used GAL
 Counter    ;                second line: any text (max. 8 char.)
 
 
 Clock D0    D1    D2    D3    Set   Clear NC    NC   GND
 /OE   NC    NC    NC    NC    Q3    Q2    Q1    Q0   VCC
+
+
+
 
 
 Q0.R =   /Clear *  Set *  D0
@@ -38,7 +30,12 @@ Q3.R =   /Clear *  Set *  D3
        + /Clear * /Set *  Q3 * /Q0
        + /Clear * /Set * /Q3 *  Q2 *  Q1 *  Q0
 
+
+
+
+
 DESCRIPTION
+
 this is a 4-Bit-Counter
 
 registered outputs are signed with the postfix .R
@@ -52,16 +49,4 @@ registered outputs are signed with the postfix .R
 
  Clock signal while pins 'Set' and 'Clear' are LOW:
         increment counter
-)";
-
-
-TEST(TestSuite, testCasdfasdfa) {
-	std::vector<unsigned char> v(counterPLD.begin(), counterPLD.end());
-
-    int rc = assemblePldMemory("Counter.pld", v.data(), v.size(), 1, 1, 1, 1, 1);
-
-
-    EXPECT_EQ(rc ,0) << counterPLD.size() << "  \n\n";
-}
-
 

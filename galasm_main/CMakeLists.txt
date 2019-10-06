@@ -1,4 +1,4 @@
-project(galsam)
+project(galasm)
 
 add_executable(${PROJECT_NAME} galasm_main.cpp)
 
