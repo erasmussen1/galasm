@@ -1,5 +1,5 @@
-GAL16V8    ; 4-Bit-Counter  first line : used GAL
-Counter    ;                second line: any text (max. 8 char.)
+GAL16V8        ; 4-Bit-Counter  first line : used GAL
+Counter        ;                second line: any text (max. 8 char.)
 
 
 Clock D0    D1    D2    D3    Set   Clear NC    NC   GND
