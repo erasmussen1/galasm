@@ -107,7 +107,7 @@ TEST_F(GalasmFixture, GAL22V10_PLD) {
     rc = assemblePldMemory("Y22V10o.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
     EXPECT_TRUE(rc >= 0) << rc << "\n";
 
-    EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "Y22V10o.jed"));
+    EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "Y22.jed"));
 }
 
 
