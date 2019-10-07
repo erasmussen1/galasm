@@ -74,18 +74,6 @@ struct GalasmFixture : public testing::Test {
     }
 };
 
-TEST_F(GalasmFixture, GAL22V10_PLD) {
-    int N = fileSize("GAL22V10.pld");
-
-    std::vector<unsigned char> v(N, 0x00);
-    int rc = readFileToBuffer("GAL22V10.pld", N, v.data());
-
-    rc = assemblePldMemory("Y22V10o.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
-    EXPECT_TRUE(rc >= 0) << rc << "\n";
-
-    EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "Y22V10o.jed"));
-}
-
 TEST_F(GalasmFixture, GenerateCounter_PLD) {
     int N = fileSize("Counter.pld");
 
@@ -109,6 +97,20 @@ TEST_F(GalasmFixture, GAL20RA10_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "X20RA10o.jed"));
 }
+
+TEST_F(GalasmFixture, GAL22V10_PLD) {
+    int N = fileSize("GAL22V10.pld");
+
+    std::vector<unsigned char> v(N, 0x00);
+    int rc = readFileToBuffer("GAL22V10.pld", N, v.data());
+
+    rc = assemblePldMemory("Y22V10o.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    EXPECT_TRUE(rc >= 0) << rc << "\n";
+
+    EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "Y22V10o.jed"));
+}
+
+
 
 
 //  GAL22V10.pld
