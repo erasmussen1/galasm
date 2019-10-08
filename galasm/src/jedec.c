@@ -7,9 +7,10 @@
 ** This file contains some functions to save GAL data in JEDEC format.
 **
 ******************************************************************************/
+#include <stdlib.h>
 
 #include "galasm.h"
-#include <stdlib.h>
+
 
 static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
 
@@ -61,7 +62,6 @@ int FuseChecksum(int galtype) {
     int checksum, byte, n;
     BYTE *ptr, *ptrXOR, *ptrS1;
 
-
     ptr = &Jedec.GALLogic[0] - 1L;
     ptrXOR = &Jedec.GALXOR[0];
     ptrS1 = &Jedec.GALS1[0];
@@ -69,7 +69,6 @@ int FuseChecksum(int galtype) {
     n = checksum = byte = 0;
 
     for (;;) {
-
         if (galtype == GAL16V8) {
             if (n == XOR16) {
                 ptr = &Jedec.GALXOR[0];
@@ -85,7 +84,6 @@ int FuseChecksum(int galtype) {
             }
         }
 
-
         if (galtype == GAL20V8) {
             if (n == XOR20) {
                 ptr = &Jedec.GALXOR[0];
@@ -100,7 +98,6 @@ int FuseChecksum(int galtype) {
                 }
             }
         }
-
 
         if (galtype == GAL22V10) {
             if (n >= XOR22V10 && n < XOR22V10 + 20) {
@@ -119,7 +116,6 @@ int FuseChecksum(int galtype) {
             }
         }
 
-
         if (galtype == GAL20RA10) {
             if (n == XOR20RA10) {
                 ptr = &Jedec.GALXOR[0];
@@ -130,7 +126,6 @@ int FuseChecksum(int galtype) {
                     ptr++;
             }
         }
-
 
         byte |= (*ptr << (n + 8) % 8);
 
@@ -146,7 +141,6 @@ int FuseChecksum(int galtype) {
 
     return (checksum);
 }
-
 
 /******************************************************************************
 ** MakeJedecBuff()
@@ -429,7 +423,6 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 **
 ** remarks: generats the JEDEC file out of the JEDEC structure
 ******************************************************************************/
-
 void WriteJedecFile(char* filename, int galtype, struct Config* cfg) {
     struct ActBuffer mybuff;
     struct Buffer* first_buff;

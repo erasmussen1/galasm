@@ -223,9 +223,7 @@ struct ActBuffer {
     UBYTE* BuffEnd;          /* pointer to the end of the */
 };                           /* buffer                    */
 
-
 /********************************** globals **********************************/
-
 extern struct JedecStruct Jedec;
 extern char* ErrorArray[];
 extern char* AsmErrorArray[];
@@ -250,6 +248,7 @@ int IsOR(char);
 int IsAND(char);
 int IsNEG(char);
 void Is_AR_SP(UBYTE* ptr);
+int GetPinNum(int gal_type);
 
 
 /* support.c */
@@ -263,11 +262,9 @@ void FreeBuffer(struct Buffer* buff);
 char* GetGALName(int galtype);
 void ErrorReq(int errornum);
 
-/* Jedec.c */
+/* jedec.c */
 int FileChecksum(struct ActBuffer buff);
 int FuseChecksum(int galtype);
 int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg);
 void WriteJedecFile(char* filename, int galtype, struct Config* cfg);
 
-
-/* EOF */
