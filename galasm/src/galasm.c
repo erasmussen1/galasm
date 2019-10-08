@@ -209,7 +209,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
     initJedec(&Jedec);
 
-    for (n = 0; n < 12; n++) { /* clear OLMC structure */
+    /* clear OLMC structure */
+    for (n = 0; n < 12; n++) {
         OLMC[n].Active = 0;
         OLMC[n].PinType = 0;
         OLMC[n].TriCon = 0;
@@ -1481,17 +1482,19 @@ void Is_AR_SP(UBYTE* ptr) {
         ptr++;
         n++;
     }
-    /* assign AR to "OLMC 11" ("pin 24") and */
-    if (n) /* assign SP to "OLMC 12" ("pin 25")     */
-    {
-        if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2))
-            actPin.p_Pin = DUMMY_OLMC11;
 
-        if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2))
+    /* assign AR to "OLMC 11" ("pin 24") and */
+    /* assign SP to "OLMC 12" ("pin 25")     */
+    if (n) {
+        if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
+            actPin.p_Pin = DUMMY_OLMC11;
+        }
+
+        if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
             actPin.p_Pin = DUMMY_OLMC12;
+        }
     }
 }
-
 
 /******************************************************************************
 ** GetNextChar()
@@ -1503,9 +1506,7 @@ void Is_AR_SP(UBYTE* ptr) {
 **
 ** remarks: searchs the next character which is no comment, space, TAB, LF
 ******************************************************************************/
-
 int GetNextChar(void) {
-
     for (;;) {
         switch (*actptr) {
             case 0x0A: /* LineFeed */
@@ -1536,7 +1537,6 @@ int GetNextChar(void) {
     }
 }
 
-
 /******************************************************************************
 ** GetNextLine()
 *******************************************************************************
@@ -1547,9 +1547,7 @@ int GetNextChar(void) {
 **
 ** remarks: gets pointer to next line
 ******************************************************************************/
-
 int GetNextLine(void) {
-
     for (;;) {
         if (*actptr == 0x0A) {
             actptr++;
@@ -1557,13 +1555,13 @@ int GetNextLine(void) {
             return (0);
         }
 
-        if (actptr > buffend) /* end of file? */
+        if (actptr > buffend) {
             return (1);
+        }
 
         actptr++;
     }
 }
-
 
 /******************************************************************************
 ** IsOR()
@@ -1575,14 +1573,13 @@ int GetNextLine(void) {
 **
 ** remarks: checks whether or not chr is a OR sign or not
 ******************************************************************************/
-
 int IsOR(char chr) {
-    if (chr == '+' || chr == '#')
+    if (chr == '+' || chr == '#') {
         return (1);
-    else
-        return (0);
-}
+    }
 
+    return (0);
+}
 
 /******************************************************************************
 ** IsAND()
@@ -1594,14 +1591,13 @@ int IsOR(char chr) {
 **
 ** remarks: checks whether or not chr is a AND sign or not
 ******************************************************************************/
-
 int IsAND(char chr) {
-    if (chr == '*' || chr == '&')
+    if (chr == '*' || chr == '&') {
         return (1);
-    else
-        return (0);
-}
+    }
 
+    return (0);
+}
 
 /******************************************************************************
 ** IsNEG()
