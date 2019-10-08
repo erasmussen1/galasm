@@ -134,6 +134,28 @@ struct GAL_OLMC OLMC[12];
 UBYTE* fbuff;
 
 
+int GetBaseName2(const char* filename, const char *ext, char* newfilename) {
+    strcpy(newfilename, filename);
+
+    char *base = newfilename;
+
+    newfilename = base + strlen(filename);
+
+    while (newfilename > base && *newfilename != '.') {
+        --newfilename;
+    }
+
+    for (int i = 0; ext[i] != '\0'; i++) {
+        newfilename++;
+        *newfilename = ext[i];
+    }
+    newfilename = '\0';
+
+    newfilename = base;
+
+    return 0;
+}
+
 /******************************************************************************
 ** int AssemblePldFile(char *file)
 *******************************************************************************
@@ -1329,45 +1351,46 @@ int AssemblePldFile(const char* file, unsigned char *fbuff2 ,int size2, struct C
 
                 /* Obtain the filename without the extension */
                 {
-                    char* base;
-                    int l;
+                    if (1) {
+                        char* jedFilename = strdup(file);
+                        int rc = GetBaseName2(file, "jed", jedFilename);
+                        if (!rc) {
+                            WriteJedecFile(jedFilename, gal_type, cfg);
+                        }
+                        free(jedFilename);
 
+                        if (cfg->GenFuse) {
+                            char* fusFilename = strdup(file);
+                            int rc = GetBaseName2(file, "fus", fusFilename);
+                            if (!rc) {
+                                WriteFuseFile(fusFilename, gal_type);
+                            }
+                            free(fusFilename);
+                        }
 
-                    if ((base = GetBaseName(file))) {
-#define extman(p, l, a, b, c) \
-    {                         \
-        p[l - 2] = a;         \
-        base[l - 1] = b;      \
-        base[l - 0] = c;      \
-    }
+                        if (cfg->GenPin) {
+                            char* pinFilename = strdup(file);
+                            int rc = GetBaseName2(file, "pin", pinFilename);
+                            if (!rc) {
+                                WritePinFile(pinFilename, gal_type);
+                            }
+                            free(pinFilename);
+                        }
 
-                        l = (strlen(base) - 1);
-
-                        base[l - 3] = '.';
-
-                        extman(base, l, 'j', 'e', 'd');
-                        WriteJedecFile(base, gal_type, cfg);
-
-                        extman(base, l, 'f', 'u', 's');
-                        if (cfg->GenFuse)
-                            WriteFuseFile(base, gal_type);
-
-                        extman(base, l, 'p', 'i', 'n');
-                        if (cfg->GenPin)
-                            WritePinFile(base, gal_type);
-
-                        extman(base, l, 'c', 'h', 'p');
-                        if (cfg->GenChip)
-                            WriteChipFile(base, gal_type);
-
-                        free(base);
-
+                        if (cfg->GenChip) {
+                            char* chpFilename = strdup(file);
+                            int rc = GetBaseName2(file, "chp", chpFilename);
+                            if (!rc) {
+                                WriteChipFile(chpFilename, gal_type);
+                            }
+                            free(chpFilename);
+                        }
                     } else {
                         ErrorReq(2);
                         return (-2);
                     }
 
-                    return (0); /* there was no error */
+                    return (0);
                 }
             } else {
                 ErrorReq(3); /* read error */
@@ -1705,6 +1728,9 @@ int GetPinNum(int gal_type) {
 ******************************************************************************/
 
 void WriteChipFile(char* filename, int gal_type) {
+
+    printf("=======> %s <===\n", filename );
+
     FILE* fp;
     int n;
 
@@ -1779,6 +1805,8 @@ void WritePinFile(char* filename, int gal_type) {
     int k, n, flag;
 
     int num_of_pins = GetPinNum(gal_type);
+
+    printf("=======> %s <===\n", filename );
 
     if ((fp = fopen(filename, (char*)"w"))) {
         fprintf(fp, "\n\n");
@@ -1910,6 +1938,9 @@ void WriteRow(FILE* fp, int row, int num_of_col) {
 ******************************************************************************/
 
 void WriteFuseFile(char* filename, int gal_type) {
+
+    printf("=======> %s <===\n", filename );
+
     FILE* fp;
     int row, pin, n, numofOLMCs, numofrows, olmc;
 

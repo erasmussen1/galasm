@@ -98,7 +98,7 @@ else()
     # http://clang.llvm.org/docs/AddressSanitizer.html
     set(flag "${flag} -fsanitize=address -fno-omit-frame-pointer ")
 
-    set(flag "${flag} -fsanitize=leak -fno-omit-frame-pointer ")
+    # set(flag "${flag} -fsanitize=leak -fno-omit-frame-pointer ")
     # set(flag "${flag} -fsanitize=thread -fno-omit-frame-pointer -fPIE -pie ")
   endif()
 endif()

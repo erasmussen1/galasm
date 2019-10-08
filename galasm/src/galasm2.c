@@ -5,6 +5,7 @@
 
 #include "galasm.h"
 
+
 int assemblePldFile(const char* filename,
                     int GenFuse,
                     int GenChip,

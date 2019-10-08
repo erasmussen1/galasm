@@ -12,45 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/******************************************************************************
-** GetBaseName(char *filename)
-*******************************************************************************
-** input:   *filename   filename
-**
-** output:  pointer to a string with a filename and
-**			enough space to add the extension later
-**			or NULL.
-**
-** remarks: the returned pointer must be free()ed
-**
-******************************************************************************/
-
-char* GetBaseName(const char* filename) {
-    int c, n;
-
-    char* p;
-
-    c = strlen(filename);
-
-    for (n = c; n != 0; n--) {
-        if (filename[n - 1] == '.') {
-            n--;
-            break;
-        }
-    }
-
-    if (n == 0)
-        n = c;
-
-    if ((p = (char*)malloc(n + 5))) {
-        strncpy(p, filename, n);
-        p[n + 4] = '\0';
-
-        return (p);
-    } else
-        return (NULL);
-}
-
 
 /******************************************************************************
 ** FileSize()

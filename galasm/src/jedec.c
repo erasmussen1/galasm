@@ -162,7 +162,7 @@ int FuseChecksum(int galtype) {
 ******************************************************************************/
 
 int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
-    UBYTE mystrng[16];
+    UBYTE mystrng[255];
     struct ActBuffer buff2;
     int n, m, bitnum, bitnum2, flag;
     int MaxFuseAdr = 0, RowSize = 0, XORSize = 0;
