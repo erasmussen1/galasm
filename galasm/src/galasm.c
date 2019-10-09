@@ -114,10 +114,9 @@ UBYTE PinDecNeg[24];
 UBYTE ModeErrorStr[] = "Mode  x:  Pin xx";
 UBYTE* pinnames;
 int modus;
-
 int linenum;
-UBYTE *actptr, *buffend;
-
+UBYTE *actptr;
+UBYTE *buffend;
 
 struct JedecStruct Jedec;
 
@@ -272,8 +271,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
     /*** get the leading 8 bytes of the second ***/
     /*** line as signature                     ***/
 
-    if (GetNextLine()) /* end of file? */
-    {
+    if (GetNextLine()) {
         AsmError(2, 0); /* yes, then error */
         return (-1);
     }
@@ -301,9 +299,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
     /*** get name of pins ***/
 
-    /* clear flags for negations */
-    /* in the pin declaration    */
-
+    /* clear flags for negations in the pin declaration */
     for (n = 0; n < 24; n++) {
         PinDecNeg[n] = 0;
     }
@@ -314,8 +310,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
     GetNextLine();
 
     for (n = 0; n < num_of_pins; n++) {
-        if (GetNextChar()) /* unexpected end of file? */
-        {                  /* yes, then error         */
+        if (GetNextChar()) {
             AsmError(2, 0);
             return (-1);
         }
@@ -324,12 +319,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
         chr = *actptr; /* get character */
 
-        if (IsNEG(chr)) /* is there a negation? */
-        {
+        /* is there a negation? */
+        if (IsNEG(chr)) {
             max_chr = 10;
-            PinDecNeg[n] = 1; /* yes, then set flag */
-        } else
+            PinDecNeg[n] = 1;
+        } else {
             max_chr = 9;
+        }
 
         if (!(isalpha(chr) || isdigit(chr) || IsNEG(chr))) {
             AsmError(5, 0); /* is character a legal */
@@ -337,10 +333,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         }
 
         k = 0;
-
         while (isalpha(chr) || isdigit(chr) || IsNEG(chr)) {
-            if (IsNEG(chr) && k != 0) /* check position of '/' */
-            {
+            /* check position of '/' */
+            if (IsNEG(chr) && k != 0) {
                 AsmError(10, 0); /* must be at the beginning */
                 return (-1);     /* of the pin name          */
             }
@@ -360,8 +355,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
             chr = *actptr;
 
-            if (m == max_chr) /* check number of characters */
-            {                 /* in this pinname            */
+            if (m == max_chr) {
                 AsmError(4, 0);
                 return (-1); /* error: too many char. */
             }
@@ -369,8 +363,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
         *(pinnames + n * 10 + m) = 0; /* mark end of string */
 
-        for (l = 0; l < n; l++) /* pin name twice? */
-        {
+        /* pin name twice? */
+        for (l = 0; l < n; l++) {
             if (strcmp((char*)pinnames + l * 10, "NC")) {
                 i = j = 0;
 
@@ -386,6 +380,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 }
             }
         }
+
         /* is GND at the GND-pin? */
         if (!strcmp((char*)(pinnames + n * 10), "GND")) {
             if (n + 1 != num_of_pins / 2) {
@@ -400,6 +395,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 return (-1);
             }
         }
+
         /* is VCC at the VCC pin? */
         if (!strcmp((char*)(pinnames + n * 10), "VCC")) {
             if (n + 1 != num_of_pins) {
@@ -430,7 +426,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         }
     }
 
-
     /* Boolean-Equations auswerten:
        Dabei werden die Boolean-Equations zweimal untersucht. Beim ersten
        Durchlauf werden die OLMC-Pins ausgewertet und die OLMC-Struktur ge-
@@ -446,8 +441,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
        With the help of this structure the correct mode (1, 2 or 3) will be
        calculated. With the second run the Fuse matrix is then provided.
     */
-    if (GetNextChar()) /* end of file? */
-    {
+    if (GetNextChar()) {
         AsmError(2, 0);
         return (-1);
     }
@@ -458,10 +452,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         return (-1);
     }
 
-
     bool_start = actptr;    /* set pointer to the beginning of    */
     bool_linenum = linenum; /* the equations and save line number */
-
 
     /* this is a two-pass-assembler */
     for (pass = 0; pass < 2; pass++) {
@@ -941,8 +933,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
         oldline = linenum;
 
-        if (GetNextChar()) { /* end of file?    */
-            AsmError(2, 0);  /* yes, then error */
+        if (GetNextChar()) {
+            AsmError(2, 0);
             return (-1);
         }
 
@@ -1213,7 +1205,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
             }
         }
     }
-
 
     if (gal_type == GAL22V10) {
         if (!OLMC[10].PinType) {
@@ -1500,21 +1491,24 @@ int GetNextChar(void) {
                 actptr++;
                 break;
 
-            case ';':              /* comment found?         */
-                if (GetNextLine()) /* then skip rest of line */
+            case ';':  /* comment found? then skip rest of line */
+                if (GetNextLine()) {
                     return (0);
+                }
                 break;
 
             default:
                 /* was there a character? */
-                if (*actptr > ' ' && *actptr <= '~')
+                if (*actptr > ' ' && *actptr <= '~') {
                     return (0);
-                else
+                } else {
                     actptr++;
+                }
         }
 
-        if (actptr > buffend) /* end of file? */
+        if (actptr > buffend) {
             return (1);
+        }
     }
 }
 
