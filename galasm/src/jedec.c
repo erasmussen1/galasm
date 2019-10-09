@@ -25,15 +25,12 @@ static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
 **          the end of the area for which the checksum should be calculated
 **          must be marked by <STX> and <ETX>!.
 ******************************************************************************/
-
 int FileChecksum(struct ActBuffer buff) {
-    int checksum;
+    int checksum = 0;
 
-
-    checksum = 0;
-
-    while (*buff.Entry != 0x2) /* search for <STX> */
+    while (*buff.Entry != 0x2) { /* search for <STX> */
         IncPointer(&buff);
+    }
 
     while (*buff.Entry != 0x3) { /* search for <ETX> and */
         checksum += *buff.Entry; /* add values           */
@@ -154,13 +151,11 @@ int FuseChecksum(int galtype) {
 **
 ** remarks: generates the JEDEC file in a ram buffer
 ******************************************************************************/
-
 int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
     UBYTE mystrng[255];
     struct ActBuffer buff2;
     int n, m, bitnum, bitnum2, flag;
     int MaxFuseAdr = 0, RowSize = 0, XORSize = 0;
-
 
     switch (galtype) {
         case GAL16V8:
@@ -191,9 +186,11 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 
     buff2 = buff;
 
-    if (!cfg->JedecFuseChk)
-        if (AddString(&buff, (UBYTE*)"\2\n")) /* <STX> */
+    if (!cfg->JedecFuseChk) {
+        if (AddString(&buff, (UBYTE*)"\2\n")) { /* <STX> */
             return (-1);
+        }
+    }
 
     /*** make header of JEDEC file ***/
     if (AddString(&buff, (UBYTE*)"Used Program:   GALasm 2.1\n"))
@@ -222,16 +219,21 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
             return (-1);
     }
 
-
-    if (AddString(&buff, (UBYTE*)"*F0\n")) /* default value of fuses */
+    /* Default value of fuses */
+    if (AddString(&buff, (UBYTE*)"*F0\n")) {
         return (-1);
+    }
 
-    if (cfg->JedecSecBit) { /* Security-Bit */
-        if (AddString(&buff, (UBYTE*)"*G1\n"))
+    /* Security-Bit */
+    if (cfg->JedecSecBit) {
+        if (AddString(&buff, (UBYTE*)"*G1\n")) {
             return (-1);
-    } else if (AddString(&buff, (UBYTE*)"*G0\n"))
-        return (-1);
-
+        }
+    } else {
+        if (AddString(&buff, (UBYTE*)"*G0\n")) {
+            return (-1);
+        }
+    }
 
     if (galtype == GAL16V8) /* number of fuses */
         if (AddString(&buff, (UBYTE*)"*QF2194\n"))
@@ -250,7 +252,6 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
             return (-1);
 
     /*** make fuse-matrix ***/
-
     bitnum = bitnum2 = flag = 0;
 
     for (m = 0; m < RowSize; m++) {
@@ -281,12 +282,14 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 
             if (AddByte(&buff, (UBYTE)'\n'))
                 return (-1);
-        } else
+        } else {
             bitnum = bitnum2;
+        }
     }
 
-    if (!flag)
+    if (!flag) {
         bitnum = bitnum2;
+    }
 
     /*** XOR-Bits ***/
     sprintf((char*)&mystrng[0], "*L%04d ", bitnum); /* add fuse adr. */

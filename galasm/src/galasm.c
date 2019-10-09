@@ -277,6 +277,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         AsmError(2, 0); /* yes, then error */
         return (-1);
     }
+
     /* store signature in the */
     n = m = 0; /* JEDEC structure        */
 
@@ -462,18 +463,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
     bool_linenum = linenum; /* the equations and save line number */
 
 
-    for (pass = 0; pass < 2; pass++) /* this is a two-pass-assembler */
-    {
+    /* this is a two-pass-assembler */
+    for (pass = 0; pass < 2; pass++) {
         printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
 
-        if (pass) /* 2. pass? => make ACW and get */
-        {         /* the mode for 16V8,20V8 GALs  */
+        /* 2nd pass? => make ACW and get the mode for 16V8,20V8 GALs  */
+        if (pass) {
             modus = 0;
-            /*** GAL16V8, GAL20V8 ***/
-
             if (gal_type == GAL16V8 || gal_type == GAL20V8) {
-
-                /* examine all OLMCs */
                 for (n = 0; n < 8; n++) {
                     /* is there a registered
                      * OLMC?, then GAL's mode is mode 3
@@ -485,10 +482,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                     }
                 }
 
-                /* still no mode? */
                 if (!modus) {
-
-                    /* examine all OLMCs */
                     for (n = 0; n < 8; n++) {
                         /* is there a tristate */
                         /* OLMC?, then GAL's   */
@@ -500,7 +494,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                     }
                 }
 
-                /* still no mode? */
                 if (!modus) {
                     /* if there is a violation of mode 1, */
                     /* then use automatically mode 2      */
@@ -527,7 +520,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                             }
                         }
 
-                        /* output and feedback? then mode 2 */
                         if (OLMC[n].PinType == COM_TRI_OUT && OLMC[n].FeedBack) {
                             modus = MODE2;
                             setMode(&Jedec, modus);
@@ -548,18 +540,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 /* is not defined explicitly as tristate output which is  */
                 /* always enabled */
 
-                /* examine all OLMCs */
                 for (n = 0; n < 8; n++) {
-                    if (OLMC[n].PinType == COM_TRI_OUT) /* is OLMC's type */
-                    {                                   /* definded expl. */
-                        if (modus == MODE1)             /* mode 1? then comb. output */
+                    if (OLMC[n].PinType == COM_TRI_OUT) {
+                        if (modus == MODE1)
                             OLMC[n].PinType = COMOUT;
                         else {
-                            OLMC[n].PinType = TRIOUT; /* mode 2, 3? then */
-                                                      /* tri. output     */
-
-                            OLMC[n].TriCon = TRI_VCC; /* tristate control */
-                                                      /* = TRUE           */
+                            OLMC[n].PinType = TRIOUT;
+                            OLMC[n].TriCon = TRI_VCC;
                         }
                     }
                 }
@@ -603,7 +590,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 }
             }
 
-            /*** GAL20RA10 ***/
             if (gal_type == GAL20RA10) {
                 /* get XOR bits (S0) */
                 for (n = 0; n < 10; n++) {
@@ -1193,7 +1179,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         }
     }
 
-
     /* set fuse matrix of unused OLMCs and of OLMCs */
     /* which are programmed as input equal 0        */
 
@@ -1223,23 +1208,27 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
             m = l + i * num_of_col;
 
-            for (k = l; k < m; k++)
+            for (k = l; k < m; k++) {
                 Jedec.GALLogic[k] = 0;
+            }
         }
     }
 
 
-    if (gal_type == GAL22V10) { /* if AR or SP is not defined,   */
-                                /* set corresponding row equal 0 */
-        if (!OLMC[10].PinType)  /* set row of AR equal 0 */
-            for (n = 0; n < num_of_col; Jedec.GALLogic[n++] = 0)
-                ;
+    if (gal_type == GAL22V10) {
+        if (!OLMC[10].PinType) {
+            for (n = 0; n < num_of_col; n++) {
+                Jedec.GALLogic[n] = 0;
+            }
+        }
 
-        if (!OLMC[11].PinType) /* set row of SP equal 0 */
-            for (n = 5764; n < 5764 + num_of_col; Jedec.GALLogic[n++] = 0)
-                ;
+        /* set row of SP equal 0 */
+        if (!OLMC[11].PinType) {
+            for (n = 5764; n < 5764 + num_of_col; n++) {
+                Jedec.GALLogic[n] = 0;
+            }
+        }
     }
-
 
     if (gal_type == GAL20RA10) {           /* set unused CLK, ARST */
                                            /* and APRST equal 0    */
@@ -1278,15 +1267,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         }
     }
 
-    /* now the JEDEC structure is ready */
-    /* (be happy, it was a hard task)   */
-
-    /* set flag, so that we can see that  */
-    /* this file is assembled succesfully */
-
-    /**
-     * now make the selected files
-     */
+    /* now the JEDEC structure is ready (be happy, it was a hard task) */
     {
         char* jedFilename = strdup(file);
         int rc = GetBaseName2(file, "jed", jedFilename);
