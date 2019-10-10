@@ -621,8 +621,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
         suffix = SUFFIX_NON;
 
-        if (*actptr == '.') /* is there a suffix?       */
-        {                   /* yes, then get the string */
+        if (*actptr == '.') {
             actptr++;
 
             if (gal_type == GAL22V10 && (actPin.p_Pin == 24 || actPin.p_Pin == 25)) {
@@ -699,8 +698,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         row_offset = 0; /* offset for OR at OLMC*/
         prevOp = 0;     /* previous operator */
 
-        if (!pass) /* is this pass 1? */
-        {          /* is pin a OLMC pin? */
+        if (!pass) {
+            /* is pin a OLMC pin? */
             if (((gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
                 ((gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
@@ -787,9 +786,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                             AsmError(24, 0);                  /* then error      */
                             return (-1);
                         }
-
                         break;
-
 
                     case SUFFIX_CLK:
                         if (actPin.p_Neg) /* negation of the .CLK   */
@@ -910,14 +907,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         if (gal_type == GAL22V10 && !actPin.p_Pin) { /* AR and SP is not allowed */
             Is_AR_SP(oldptr);                        /* in terms of an equation  */
 
-            if (actPin.p_Pin) { /* when used, then error */
+            if (actPin.p_Pin) {
                 AsmError(31, 0);
                 return (-1);
             }
         }
 
-        if (!actPin.p_Pin) { /* pin name?      */
-            AsmError(11, 0); /* no, then error */
+        if (!actPin.p_Pin) {
+            AsmError(11, 0);
             return (-1);
         }
 
@@ -926,10 +923,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
             return (-1);
         }
 
-
-        if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10))))
-            actPin.p_Neg = !actPin.p_Neg; /* consider negation in the */
-                                          /* pin declartion           */
+        if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10)))) {
+            actPin.p_Neg = !actPin.p_Neg; /* consider negation in the pin declartion */
+        }
 
         oldline = linenum;
 
@@ -941,8 +937,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         newline = linenum;
         linenum = oldline;
 
-        if (!pass) /* is this pass 1?*/
-        {
+        /* 1st pass */
+        if (!pass) {
             if (((gal_type == GAL16V8) && /* is this pin an OLMC pin? */
                  (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
@@ -1056,10 +1052,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 }
             }
 
-            if (gal_type == GAL20RA10) /* valuation of 20RA10? */
-            {
-                if (pin_num == 1) /* pin 1 is reserved for */
-                {                 /* /PL (preload)         */
+            /* valuation of 20RA10? */
+            if (gal_type == GAL20RA10) {
+                if (pin_num == 1) { /* pin 1 is reserved for /PL (preload) */
                     AsmError(37, 0);
                     return (-1);
                 }
@@ -1072,7 +1067,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
             /* if GND, set row equal 0 */
             if (pin_num == num_of_pins || pin_num == num_of_pins / 2) {
-                if (actPin.p_Neg) { /* /VCC and /GND are not allowed */
+
+                /* /VCC and /GND are not allowed */
+                if (actPin.p_Neg) {
                     AsmError(25, 0);
                     return (-1);
                 }
@@ -1080,16 +1077,17 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 if (!prevOp && !IsAND(*actptr) && !IsOR(*actptr)) {
                     if (pin_num == num_of_pins / 2) {
                         m = (start_row + row_offset) * num_of_col;
+
                         /* set row equal 0 */
-                        for (n = m; n < m + num_of_col; Jedec.GALLogic[n++] = 0)
-                            ;
+                        for (n = m; n < m + num_of_col; n++) {
+                            Jedec.GALLogic[n] = 0;
+                        }
                     }
                 } else {
                     AsmError(28, 0);
                     return (-1);
                 }
             } else {
-
                 if (suffix == SUFFIX_E || suffix == SUFFIX_CLK || suffix == SUFFIX_ARST ||
                     suffix == SUFFIX_APRST ||
                     (gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))) {
@@ -1118,13 +1116,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
             if (!IsOR(*actptr) && !IsAND(*actptr) && suffix != SUFFIX_E && suffix != SUFFIX_CLK &&
                 suffix != SUFFIX_ARST && suffix != SUFFIX_APRST) {
                 /* no?, then set unused */
-                row_offset++; /* rows of the OLMX     */
-                              /* equal 0              */
+                row_offset++; /* rows of the OLMX equal 0 */
                 if (row_offset != max_row) {
                     m = (start_row + row_offset) * num_of_col;
 
-                    for (n = m; n < m + (max_row - row_offset) * num_of_col; n++)
+                    for (n = m; n < m + (max_row - row_offset) * num_of_col; n++) {
                         Jedec.GALLogic[n] = 0;
+                    }
                 }
             }
         }
@@ -1164,8 +1162,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 return (-1);
             }
 
-            if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10))))
+            if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10)))) {
                 actPin.p_Neg = !actPin.p_Neg; /* negation at pin declaration */
+            }
 
             goto loop1;
         }
@@ -1173,7 +1172,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
 
     /* set fuse matrix of unused OLMCs and of OLMCs */
     /* which are programmed as input equal 0        */
-
     for (n = 0; n < num_of_olmcs; n++) {
         if (OLMC[n].PinType == NOTUSED || OLMC[n].PinType == INPUT) {
             int i = 0;
@@ -1221,12 +1219,11 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         }
     }
 
-    if (gal_type == GAL20RA10) {           /* set unused CLK, ARST */
-                                           /* and APRST equal 0    */
-        for (n = 0; n < num_of_olmcs; n++) /* examine all OLMCs    */
-        {
-            if (OLMC[n].PinType != NOTUSED) /* is OLMC used? */
-            {
+    /* set unused CLK, ARST and APRST equal 0    */
+    if (gal_type == GAL20RA10) {
+        for (n = 0; n < num_of_olmcs; n++) {
+            /* is OLMC used? */
+            if (OLMC[n].PinType != NOTUSED) {
                 if (OLMC[n].PinType == REGOUT && !OLMC[n].Clock) {
                     AsmError(41, n + 14); /* register output        */
                     return (-1);          /* needs clock definition */
@@ -1235,23 +1232,26 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
                 if (!OLMC[n].Clock) {                       /* is clock unused? */
                     l = (ToOLMC20RA10[n] + 1) * num_of_col; /* then clear */
                                                             /* the row    */
-                    for (k = l; k < l + num_of_col; k++)
+                    for (k = l; k < l + num_of_col; k++) {
                         Jedec.GALLogic[k] = 0;
+                    }
                 }
 
                 if (OLMC[n].PinType == REGOUT) {
-                    if (!OLMC[n].ARST) { /* is ARST unused? */
+                    if (!OLMC[n].ARST) {
                         l = (ToOLMC20RA10[n] + 2) * num_of_col;
 
-                        for (k = l; k < l + num_of_col; k++)
+                        for (k = l; k < l + num_of_col; k++) {
                             Jedec.GALLogic[k] = 0;
+                        }
                     }
 
                     if (!OLMC[n].APRST) { /* is APRST unused? */
                         l = (ToOLMC20RA10[n] + 3) * num_of_col;
 
-                        for (k = l; k < l + num_of_col; k++)
+                        for (k = l; k < l + num_of_col; k++) {
                             Jedec.GALLogic[k] = 0;
+                        }
                     }
                 }
             }
