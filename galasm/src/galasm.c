@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "jedec.h"
 #include "galasm.h"
 
 
@@ -118,7 +119,7 @@ int linenum;
 UBYTE *actptr;
 UBYTE *buffend;
 
-struct JedecStruct Jedec;
+JedecStruct_t Jedec;
 
 struct Pin actPin;
 struct GAL_OLMC OLMC[12];
@@ -144,34 +145,6 @@ int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
     newfilename = base;
 
     return 0;
-}
-
-static void initJedec(struct JedecStruct* jedec) {
-    memset(jedec, 0, sizeof(*jedec));
-    memset(&jedec->GALLogic, 1, sizeof(Jedec.GALLogic));
-}
-
-static void setMode(struct JedecStruct* jedec, int modus) {
-    switch (modus) {
-        default:
-        case MODE1:
-            /* set SYN and AC0 bit */
-            jedec->GALSYN = 1;
-            jedec->GALAC0 = 0;
-            break;
-
-        case MODE2:
-            /* set SYN, AC0 for mode 2 */
-            jedec->GALSYN = 1;
-            jedec->GALAC0 = 1;
-            break;
-
-        case MODE3:
-            /* set SYN and AC0 for mode 3 */
-            jedec->GALSYN = 0;
-            jedec->GALAC0 = 1;
-            break;
-    }
 }
 
 /**

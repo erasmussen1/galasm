@@ -7,12 +7,44 @@
 ** This file contains some functions to save GAL data in JEDEC format.
 **
 ******************************************************************************/
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
+#include "jedec.h"
 #include "galasm.h"
 
+extern JedecStruct_t Jedec;
 
 static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
+
+void initJedec(JedecStruct_t* jedec) {
+    memset(jedec, 0x00, sizeof(*jedec));
+    memset(&jedec->GALLogic, 1, sizeof(*jedec->GALLogic));
+}
+
+void setMode(JedecStruct_t* jedec, int modus) {
+    switch (modus) {
+        default:
+        case MODE1:
+            /* set SYN and AC0 bit */
+            jedec->GALSYN = 1;
+            jedec->GALAC0 = 0;
+            break;
+
+        case MODE2:
+            /* set SYN, AC0 for mode 2 */
+            jedec->GALSYN = 1;
+            jedec->GALAC0 = 1;
+            break;
+
+        case MODE3:
+            /* set SYN and AC0 for mode 3 */
+            jedec->GALSYN = 0;
+            jedec->GALAC0 = 1;
+            break;
+    }
+}
 
 /******************************************************************************
 ** FileChecksum()
@@ -28,19 +60,21 @@ static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
 int FileChecksum(struct ActBuffer buff) {
     int checksum = 0;
 
-    while (*buff.Entry != 0x2) { /* search for <STX> */
+    /* search for <STX> */
+    while (*buff.Entry != 0x2) {
         IncPointer(&buff);
     }
 
-    while (*buff.Entry != 0x3) { /* search for <ETX> and */
-        checksum += *buff.Entry; /* add values           */
+    /* search for <ETX> and */    
+    while (*buff.Entry != 0x3) {
+        checksum += *buff.Entry;
 
         IncPointer(&buff);
     }
 
     checksum += 0x3; /* add <ETX> too */
 
-    return (checksum); /* ready */
+    return checksum;
 }
 
 
@@ -55,23 +89,23 @@ int FileChecksum(struct ActBuffer buff) {
 **          structure.
 ******************************************************************************/
 
-int FuseChecksum(int galtype) {
-    int checksum, byte, n;
-    BYTE *ptr, *ptrXOR, *ptrS1;
+int FuseChecksum(JedecStruct_t* jedec, int galtype) {
 
-    ptr = &Jedec.GALLogic[0] - 1L;
-    ptrXOR = &Jedec.GALXOR[0];
-    ptrS1 = &Jedec.GALS1[0];
+    uint8_t *ptr = &jedec->GALLogic[0] - 1L;
+    uint8_t *ptrXOR = &jedec->GALXOR[0];
+    uint8_t *ptrS1 = &jedec->GALS1[0];
 
-    n = checksum = byte = 0;
+    int n = 0;
+    int checksum = 0;
+    int byte = 0;
 
     for (;;) {
         if (galtype == GAL16V8) {
             if (n == XOR16) {
-                ptr = &Jedec.GALXOR[0];
+                ptr = &jedec->GALXOR[0];
             } else {
                 if (n == XOR16 + 8) {
-                    ptr = &Jedec.GALSig[0];
+                    ptr = &jedec->GALSig[0];
                 } else {
                     if (n == NUMOFFUSES16)
                         break;
@@ -83,10 +117,10 @@ int FuseChecksum(int galtype) {
 
         if (galtype == GAL20V8) {
             if (n == XOR20) {
-                ptr = &Jedec.GALXOR[0];
+                ptr = &jedec->GALXOR[0];
             } else {
                 if (n == XOR20 + 8) {
-                    ptr = &Jedec.GALSig[0];
+                    ptr = &jedec->GALSig[0];
                 } else {
                     if (n == NUMOFFUSES20)
                         break;
@@ -104,7 +138,7 @@ int FuseChecksum(int galtype) {
                     ptr = ptrS1++;
             } else {
                 if (n == SIG22V10)
-                    ptr = &Jedec.GALSig[0] - 1L;
+                    ptr = &jedec->GALSig[0] - 1L;
 
                 if (n == SIG22V10 + SIG_SIZE)
                     break;
@@ -115,7 +149,7 @@ int FuseChecksum(int galtype) {
 
         if (galtype == GAL20RA10) {
             if (n == XOR20RA10) {
-                ptr = &Jedec.GALXOR[0];
+                ptr = &jedec->GALXOR[0];
             } else {
                 if (n == SIG20RA10 + SIG_SIZE)
                     break;
@@ -390,7 +424,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 
     /*  if (cfg->JedecFuseChk)
         {*/                                   /* add fuse-checksum */
-    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(galtype));
+    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(&Jedec, galtype));
 
     if (AddString(&buff, (UBYTE*)&mystrng[0]))
         return (-1);
@@ -442,9 +476,9 @@ void WriteJedecFile(char* filename, int galtype, struct Config* cfg) {
     mybuff.Entry = (UBYTE*)(&first_buff->Entries[0]);
     mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(struct Buffer);
 
-
-    if (MakeJedecBuff(mybuff, galtype, cfg)) { /* put JEDEC in ram-buffer */
-        FreeBuffer(first_buff);                /* error?                  */
+    /* put JEDEC in ram-buffer */
+    if (MakeJedecBuff(mybuff, galtype, cfg)) {
+        FreeBuffer(first_buff);
         ErrorReq(2);
         return;
     }

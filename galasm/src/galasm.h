@@ -6,13 +6,11 @@
 ** This file includes some definitions and structures used by GALasm.
 **
 ********************************************************************************/
-
-
-/****************************** include files ********************************/
-
-#ifndef __STDIO_H
 #include <stdio.h>
-#endif
+#include <stdint.h>
+
+#include "jedec.h"
+
 
 /******************************* definitions *********************************/
 
@@ -168,21 +166,6 @@ struct Config {
 };
 
 
-/* this structure is used to store */
-/* the fuses in a kind of JEDEC    */
-/* format                          */
-
-struct JedecStruct {
-    BYTE GALLogic[5808]; /*max. size of fuse matrix */
-    BYTE GALXOR[10];     /* XOR bits                */
-    BYTE GALSig[64];     /* signature               */
-    BYTE GALAC1[8];      /* AC1 bits                */
-    BYTE GALPT[64];      /* product term disable    */
-    BYTE GALSYN;         /* SYN bit                 */
-    BYTE GALAC0;         /* AC0 bit                 */
-    BYTE GALS1[10];      /* S1 bits for 22V10       */
-};
-
 
 /* used to store infos about a pin */
 struct Pin {
@@ -224,7 +207,7 @@ struct ActBuffer {
 };                           /* buffer                    */
 
 /********************************** globals **********************************/
-extern struct JedecStruct Jedec;
+// extern JedecStruct_t jedec;
 extern char* ErrorArray[];
 extern char* AsmErrorArray[];
 
@@ -264,7 +247,6 @@ void ErrorReq(int errornum);
 
 /* jedec.c */
 int FileChecksum(struct ActBuffer buff);
-int FuseChecksum(int galtype);
 int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg);
 void WriteJedecFile(char* filename, int galtype, struct Config* cfg);
 
