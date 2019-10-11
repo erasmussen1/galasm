@@ -1,12 +1,3 @@
-/******************************************************************************
-** GALasm.c
-*******************************************************************************
-**
-** description:
-**
-** This file contains the GAL-assembler.
-**
-******************************************************************************/
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +7,7 @@
 #include "galasm.h"
 
 
-/********************************** defines **********************************/
+
 #define SUFFIX_NON 0 /* possible suffixes */
 #define SUFFIX_T 1
 #define SUFFIX_R 2
@@ -81,8 +72,7 @@ int PinToFuse20RA10[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
                            -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
 
 
-/* These arrays show which row is connected to */
-/* which OLMC */
+/* These arrays show which row is connected to which OLMC */
 int ToOLMC[8] = {56, 48, 40, 32, 24, 16, 8, 0};
 
 int ToOLMC22V10[12] = {122, 111, 98, 83, 66, 49, 34, 21, 10, 1, 0, 131};
@@ -113,7 +103,6 @@ UBYTE* actptr;
 UBYTE* buffend;
 
 JedecStruct_t Jedec;
-
 Pin_t actPin;
 GAL_OLMC_t OLMC[12];
 
@@ -233,6 +222,21 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
 }
 
 /**
+ * Clear OLMC structure
+ */
+static void clearOLMC(GAL_OLMC_t* olmc) {
+    for (int n = 0; n < 12; n++) {
+        olmc[n].Active = 0;
+        olmc[n].PinType = 0;
+        olmc[n].TriCon = 0;
+        olmc[n].Clock = 0;
+        olmc[n].ARST = 0;
+        olmc[n].APRST = 0;
+        olmc[n].FeedBack = 0;
+    }
+}
+
+/**
  * int AssemblePldFile(char *file)
  *
  * input:   file  The file to be assembled
@@ -263,29 +267,17 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     initJedec(&Jedec);
 
-    /* clear OLMC structure */
-    for (n = 0; n < 12; n++) {
-        OLMC[n].Active = 0;
-        OLMC[n].PinType = 0;
-        OLMC[n].TriCon = 0;
-        OLMC[n].Clock = 0;
-        OLMC[n].ARST = 0;
-        OLMC[n].APRST = 0;
-        OLMC[n].FeedBack = 0;
-    }
+    clearOLMC(OLMC);
 
-    /*** get type of GAL ***/
     int rc = getGalTypeFromBuffer(actptr, cfg);
     if (rc) {
         AsmError(1, 0);
         return rc;
     }
 
-    /*** get the leading 8 bytes of the second ***/
-    /*** line as signature                     ***/
-
+    /*** get the leading 8 bytes of the second line as signature ***/
     if (GetNextLine()) {
-        AsmError(2, 0); /* yes, then error */
+        AsmError(2, 0);
         return (-1);
     }
 
