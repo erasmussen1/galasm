@@ -14,8 +14,6 @@
 #include "jedec.h"
 #include "galasm.h"
 
-extern JedecStruct_t Jedec;
-
 static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
 
 void initJedec(JedecStruct_t* jedec) {
@@ -469,7 +467,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, ActBuffer_t buff) {
 **
 ** remarks: generats the JEDEC file out of the JEDEC structure
 ******************************************************************************/
-void WriteJedecFile(char* filename, Config_t* cfg) {
+void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
     ActBuffer_t mybuff;
     Buffer_t* first_buff;
     UBYTE *filebuffer, *filebuffer2;
@@ -484,7 +482,7 @@ void WriteJedecFile(char* filename, Config_t* cfg) {
     mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(Buffer_t);
 
     /* put JEDEC in ram-buffer */
-    if (MakeJedecBuff(&Jedec, cfg, mybuff)) {
+    if (MakeJedecBuff(jedec, cfg, mybuff)) {
         FreeBuffer(first_buff);
         ErrorReq(2);
         return;

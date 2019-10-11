@@ -114,8 +114,8 @@ UBYTE* buffend;
 
 JedecStruct_t Jedec;
 
-struct Pin actPin;
-struct GAL_OLMC OLMC[12];
+Pin_t actPin;
+GAL_OLMC_t OLMC[12];
 
 
 int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
@@ -139,6 +139,33 @@ int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
 
     return 0;
 }
+
+/*
+ * get OLMC number
+ */
+static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
+
+    int n;
+    switch (cfg->gal_type) {
+        case GAL16V8:
+            n = actPin->p_Pin - 12;
+            break;
+
+        case GAL20V8:
+            n = actPin->p_Pin - 15;
+            break;
+
+        case GAL22V10:
+        case GAL20RA10:
+            n = actPin->p_Pin - 14;
+            break;
+        default:
+            n = -1;
+            break;
+    }
+    return n;
+}
+
 
 /**
  * Only ' ', newline and tab are valid after the GAL's name
@@ -254,9 +281,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         return rc;
     }
 
-    int num_of_olmcs = cfg->num_of_olmcs;
-    int num_of_col = cfg->num_of_col;
-
     /*** get the leading 8 bytes of the second ***/
     /*** line as signature                     ***/
 
@@ -293,7 +317,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         PinDecNeg[n] = 0;
     }
 
-    pinnames = &PinNames[0][0]; /*assembler: pin names in PinNames*/
+    /*assembler: pin names in PinNames*/
+    pinnames = &PinNames[0][0];
 
     /* set flag 'not assembled' */
     GetNextLine();
@@ -695,20 +720,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 /* get OLMC number */
-                switch (cfg->gal_type) {
-                    case GAL16V8:
-                        n = actPin.p_Pin - 12;
-                        break;
-
-                    case GAL20V8:
-                        n = actPin.p_Pin - 15;
-                        break;
-
-                    case GAL22V10:
-                    case GAL20RA10:
-                        n = actPin.p_Pin - 14;
-                        break;
-                }
+                n = getOLMCnumber(cfg, &actPin);
 
                 switch (suffix) {
                     case SUFFIX_R: /* output definition */
@@ -935,21 +947,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 /* get OLMC number */
-                switch (cfg->gal_type) {
-                    case GAL16V8:
-                        n = actPin.p_Pin - 12;
-                        break;
-
-                    case GAL20V8:
-                        n = actPin.p_Pin - 15;
-                        break;
-
-                    case GAL22V10:
-                    case GAL20RA10:
-                        n = actPin.p_Pin - 14;
-                        break;
-                }
-
+                n = getOLMCnumber(cfg, &actPin);
 
                 if (!OLMC[n].PinType)        /* is OLMC's type already */
                     OLMC[n].PinType = INPUT; /* defined? no, then use  */
@@ -1063,10 +1061,10 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                 if (!prevOp && !IsAND(*actptr) && !IsOR(*actptr)) {
                     if (pin_num == cfg->num_of_pins / 2) {
-                        m = (start_row + row_offset) * num_of_col;
+                        m = (start_row + row_offset) * cfg->num_of_col;
 
                         /* set row equal 0 */
-                        for (n = m; n < m + num_of_col; n++) {
+                        for (n = m; n < m + cfg->num_of_col; n++) {
                             Jedec.GALLogic[n] = 0;
                         }
                     }
@@ -1105,9 +1103,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 /* no?, then set unused */
                 row_offset++; /* rows of the OLMX equal 0 */
                 if (row_offset != max_row) {
-                    m = (start_row + row_offset) * num_of_col;
+                    m = (start_row + row_offset) * cfg->num_of_col;
 
-                    for (n = m; n < m + (max_row - row_offset) * num_of_col; n++) {
+                    for (n = m; n < m + (max_row - row_offset) * cfg->num_of_col; n++) {
                         Jedec.GALLogic[n] = 0;
                     }
                 }
@@ -1159,7 +1157,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     /* set fuse matrix of unused OLMCs and of OLMCs */
     /* which are programmed as input equal 0        */
-    for (n = 0; n < num_of_olmcs; n++) {
+    for (n = 0; n < cfg->num_of_olmcs; n++) {
         if (OLMC[n].PinType == NOTUSED || OLMC[n].PinType == INPUT) {
             int i = 0;
 
@@ -1181,9 +1179,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     break;
             }
 
-            l = l * num_of_col;
+            l = l * cfg->num_of_col;
 
-            m = l + i * num_of_col;
+            m = l + i * cfg->num_of_col;
 
             for (k = l; k < m; k++) {
                 Jedec.GALLogic[k] = 0;
@@ -1193,14 +1191,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     if (cfg->gal_type == GAL22V10) {
         if (!OLMC[10].PinType) {
-            for (n = 0; n < num_of_col; n++) {
+            for (n = 0; n < cfg->num_of_col; n++) {
                 Jedec.GALLogic[n] = 0;
             }
         }
 
         /* set row of SP equal 0 */
         if (!OLMC[11].PinType) {
-            for (n = 5764; n < 5764 + num_of_col; n++) {
+            for (n = 5764; n < 5764 + cfg->num_of_col; n++) {
                 Jedec.GALLogic[n] = 0;
             }
         }
@@ -1208,7 +1206,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     /* set unused CLK, ARST and APRST equal 0    */
     if (cfg->gal_type == GAL20RA10) {
-        for (n = 0; n < num_of_olmcs; n++) {
+        for (n = 0; n < cfg->num_of_olmcs; n++) {
             /* is OLMC used? */
             if (OLMC[n].PinType != NOTUSED) {
                 if (OLMC[n].PinType == REGOUT && !OLMC[n].Clock) {
@@ -1217,26 +1215,26 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 }
 
                 if (!OLMC[n].Clock) {                       /* is clock unused? */
-                    l = (ToOLMC20RA10[n] + 1) * num_of_col; /* then clear */
+                    l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col; /* then clear */
                                                             /* the row    */
-                    for (k = l; k < l + num_of_col; k++) {
+                    for (k = l; k < l + cfg->num_of_col; k++) {
                         Jedec.GALLogic[k] = 0;
                     }
                 }
 
                 if (OLMC[n].PinType == REGOUT) {
                     if (!OLMC[n].ARST) {
-                        l = (ToOLMC20RA10[n] + 2) * num_of_col;
+                        l = (ToOLMC20RA10[n] + 2) * cfg->num_of_col;
 
-                        for (k = l; k < l + num_of_col; k++) {
+                        for (k = l; k < l + cfg->num_of_col; k++) {
                             Jedec.GALLogic[k] = 0;
                         }
                     }
 
                     if (!OLMC[n].APRST) { /* is APRST unused? */
-                        l = (ToOLMC20RA10[n] + 3) * num_of_col;
+                        l = (ToOLMC20RA10[n] + 3) * cfg->num_of_col;
 
-                        for (k = l; k < l + num_of_col; k++) {
+                        for (k = l; k < l + cfg->num_of_col; k++) {
                             Jedec.GALLogic[k] = 0;
                         }
                     }
@@ -1250,7 +1248,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         char* jedFilename = strdup(file);
         int rc = GetBaseName2(file, "jed", jedFilename);
         if (!rc) {
-            WriteJedecFile(jedFilename, cfg);
+            WriteJedecFile(jedFilename, &Jedec, cfg);
         }
         free(jedFilename);
 

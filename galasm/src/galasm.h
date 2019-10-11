@@ -129,21 +129,21 @@ typedef unsigned char UBYTE; /* unsigned 8-bit quantity */
 /******************************** structures *********************************/
 
 /* used to store infos about a pin */
-struct Pin {
-    BYTE p_Neg; /* polarity of pin */
-    BYTE p_Pin; /* pin number      */
-};
+typedef struct {
+    int8_t p_Neg; /* polarity of pin */
+    int8_t p_Pin; /* pin number      */
+} Pin_t;
 
 /* used to store infos about an OLMC */
-struct GAL_OLMC {
-    BYTE Active;   /* output's polarity           */
-    BYTE PinType;  /* type of pin (input,...)     */
-    BYTE TriCon;   /* user def. tristate control? */
-    BYTE Clock;    /* user def. clock equation?   */
-    BYTE ARST;     /* user def. ARST equation?    */
-    BYTE APRST;    /* user def. APRST equation?   */
-    BYTE FeedBack; /* is there a feedback?        */
-};
+typedef struct {
+    int8_t Active;   /* output's polarity           */
+    int8_t PinType;  /* type of pin (input,...)     */
+    int8_t TriCon;   /* user def. tristate control? */
+    int8_t Clock;    /* user def. clock equation?   */
+    int8_t ARST;     /* user def. ARST equation?    */
+    int8_t APRST;    /* user def. APRST equation?   */
+    int8_t FeedBack; /* is there a feedback?        */
+} GAL_OLMC_t;
 
 /********************************** globals **********************************/
 extern char* ErrorArray[];

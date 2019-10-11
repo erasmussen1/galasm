@@ -50,7 +50,7 @@ void initJedec(JedecStruct_t* jedec);
 void setMode(JedecStruct_t* jedec, int modus);
 int FuseChecksum(JedecStruct_t* jedec, int galtype);
 int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff);
-void WriteJedecFile(char* filename, Config_t* jedecConf);
+void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* jedecConf);
 
 #endif
 
