@@ -141,6 +141,71 @@ int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
 }
 
 /**
+ * Only ' ', newline and tab are valid after the GAL's name
+ * Any other char will produce an error
+ */
+static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
+
+    cfg->gal_type = UNKNOWN;
+    cfg->num_of_olmcs = 0;
+    cfg->num_of_pins = 0;
+    cfg->num_of_col = 0;
+
+    if (strncmp((char*)actptr, "GAL16V8", (size_t)7) == 0) {
+        cfg->num_of_olmcs = 8;
+        cfg->num_of_pins = 20;
+        cfg->num_of_col = MAX_FUSE_ADR16 + 1;
+        cfg->gal_type = GAL16V8;
+
+        if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
+            return (-1);
+        }
+        return 0;
+    }
+
+    if (strncmp((char*)actptr, "GAL20V8", (size_t)7) == 0) {
+        cfg->num_of_olmcs = 8;
+        cfg->num_of_pins = 24;
+        cfg->num_of_col = MAX_FUSE_ADR20 + 1;
+        cfg->gal_type = GAL20V8;
+
+        if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
+            return (-1);
+        }
+
+        return 0;
+    }
+
+    if (strncmp((char*)actptr, "GAL20RA10", (size_t)9) == 0) {
+        cfg->num_of_olmcs = 10;
+        cfg->num_of_pins = 24;
+        cfg->num_of_col = MAX_FUSE_ADR20RA10 + 1;
+        cfg->gal_type = GAL20RA10;
+
+        if ((*(actptr + 9L) != ' ') && (*(actptr + 9L) != 0x0A) && (*(actptr + 9L) != 0x09)) {
+            return (-1);
+        }
+
+        return 0;
+    }
+
+    if (strncmp((char*)actptr, "GAL22V10", (size_t)8) == 0) {
+        cfg->num_of_olmcs = 10;
+        cfg->num_of_pins = 24;
+        cfg->num_of_col = MAX_FUSE_ADR22V10 + 1;
+        cfg->gal_type = GAL22V10;
+
+        if ((*(actptr + 8L) != ' ') && (*(actptr + 8L) != 0x0A) && (*(actptr + 8L) != 0x09)) {
+            return (-1);
+        }
+
+        return 0;
+    }
+
+    return -1;
+}
+
+/**
  * int AssemblePldFile(char *file)
  *
  * input:   file  The file to be assembled
@@ -158,10 +223,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     int i = 0, j, k, l = 0, n, m;
     int max_chr, pass, pin_num, bool_linenum;
     int actOLMC, row_offset, newline, oldline;
-    int suffix, start_row, max_row, num_of_olmcs;
-    int gal_type;
-    int num_of_pins;
-    int num_of_col;
+    int suffix, start_row, max_row;
 
     if (!fbuff) {
         ErrorReq(2);
@@ -186,54 +248,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     }
 
     /*** get type of GAL ***/
-    if (strncmp((char*)actptr, "GAL16V8", (size_t)7) == 0) {
-        num_of_olmcs = 8;                /* number of OLMCs */
-        num_of_pins = 20;                /* number of pins  */
-        num_of_col = MAX_FUSE_ADR16 + 1; /* number of col.  */
-        gal_type = GAL16V8;
-
-        if ((*(actptr + 7L) != ' ') &&  /* Only ' ', newline and tab are valid 	*/
-            (*(actptr + 7L) != 0x0A) && /* after the GAL's name					*/
-            (*(actptr + 7L) != 0x09))   /* Any other char will produce an error */
-        {
-            AsmError(1, 0);
-            return (-1);
-        }
-    } else if (strncmp((char*)actptr, "GAL20V8", (size_t)7) == 0) {
-        num_of_olmcs = 8;                /* num of OLMCs */
-        num_of_pins = 24;                /* num of pins  */
-        num_of_col = MAX_FUSE_ADR20 + 1; /* num of col   */
-        gal_type = GAL20V8;
-
-        if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
-            AsmError(1, 0);
-            return (-1);
-        }
-    } else if (strncmp((char*)actptr, "GAL20RA10", (size_t)9) == 0) {
-        num_of_olmcs = 10;
-        num_of_pins = 24;
-        num_of_col = MAX_FUSE_ADR20RA10 + 1;
-        gal_type = GAL20RA10;
-
-        if ((*(actptr + 9L) != ' ') && (*(actptr + 9L) != 0x0A) && (*(actptr + 9L) != 0x09)) {
-            AsmError(1, 0);
-            return (-1);
-        }
-    } else if (strncmp((char*)actptr, "GAL22V10", (size_t)8) == 0) {
-        num_of_olmcs = 10;
-        num_of_pins = 24;
-        num_of_col = MAX_FUSE_ADR22V10 + 1;
-        gal_type = GAL22V10;
-
-        if ((*(actptr + 8L) != ' ') && (*(actptr + 8L) != 0x0A) && (*(actptr + 8L) != 0x09)) {
-            AsmError(1, 0);
-            return (-1);
-        }
-    } else {
+    int rc = getGalTypeFromBuffer(actptr, cfg);
+    if (rc) {
         AsmError(1, 0);
-        return (-1);
+        return rc;
     }
-    cfg->gal_type = gal_type;
+
+    int num_of_olmcs = cfg->num_of_olmcs;
+    int num_of_col = cfg->num_of_col;
 
     /*** get the leading 8 bytes of the second ***/
     /*** line as signature                     ***/
@@ -276,7 +298,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     /* set flag 'not assembled' */
     GetNextLine();
 
-    for (n = 0; n < num_of_pins; n++) {
+    for (n = 0; n < cfg->num_of_pins; n++) {
         if (GetNextChar()) {
             AsmError(2, 0);
             return (-1);
@@ -350,13 +372,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         /* is GND at the GND-pin? */
         if (!strcmp((char*)(pinnames + n * 10), "GND")) {
-            if (n + 1 != num_of_pins / 2) {
+            if (n + 1 != cfg->num_of_pins / 2) {
                 AsmError(6, 0);
                 return (-1);
             }
         }
 
-        if (n + 1 == num_of_pins / 2) {
+        if (n + 1 == cfg->num_of_pins / 2) {
             if (strcmp((char*)(pinnames + n * 10), "GND")) {
                 AsmError(8, 0);
                 return (-1);
@@ -365,13 +387,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         /* is VCC at the VCC pin? */
         if (!strcmp((char*)(pinnames + n * 10), "VCC")) {
-            if (n + 1 != num_of_pins) {
+            if (n + 1 != cfg->num_of_pins) {
                 AsmError(6, 0);
                 return (-1);
             }
         }
 
-        if (n + 1 == num_of_pins) {
+        if (n + 1 == cfg->num_of_pins) {
             if (strcmp((char*)(pinnames + n * 10), "VCC")) {
                 AsmError(7, 0);
                 return (-1);
@@ -380,7 +402,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         /* AR and SP are key words for 22V10 */
         /* they are not allowed in the pin */
         /* declaration */
-        if (gal_type == GAL22V10) {
+        if (cfg->gal_type == GAL22V10) {
             if (!strcmp((char*)(pinnames + n * 10), "AR")) {
                 AsmError(18, 0);
                 return (-1);
@@ -429,7 +451,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         /* 2nd pass? => make ACW and get the mode for 16V8,20V8 GALs  */
         if (pass) {
             modus = 0;
-            if (gal_type == GAL16V8 || gal_type == GAL20V8) {
+            if (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8) {
                 for (n = 0; n < 8; n++) {
                     /* is there a registered
                      * OLMC?, then GAL's mode is mode 3
@@ -458,7 +480,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     /* then use automatically mode 2      */
                     for (n = 0; n < 8; n++) {
                         if (OLMC[n].PinType == INPUT) {
-                            if (gal_type == GAL16V8) {
+                            if (cfg->gal_type == GAL16V8) {
                                 pin_num = n + 12;
 
                                 if (pin_num == 15 || pin_num == 16) {
@@ -468,7 +490,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                                 }
                             }
 
-                            if (gal_type == GAL20V8) {
+                            if (cfg->gal_type == GAL20V8) {
                                 pin_num = n + 15;
 
                                 if (pin_num == 18 || pin_num == 19) {
@@ -532,7 +554,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             /*** GAL22V10 ***/
-            if (gal_type == GAL22V10) {
+            if (cfg->gal_type == GAL22V10) {
                 for (n = 0; n < 10; n++) {
                     if (OLMC[n].PinType == COM_TRI_OUT) /* output can be */
                         OLMC[n].PinType = TRIOUT;       /* tristate or   */
@@ -549,7 +571,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 }
             }
 
-            if (gal_type == GAL20RA10) {
+            if (cfg->gal_type == GAL20RA10) {
                 /* get XOR bits (S0) */
                 for (n = 0; n < 10; n++) {
                     if (OLMC[n].PinType == COM_TRI_OUT) /* output can be */
@@ -566,7 +588,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         if (pass) {
             printf("GAL %s; Operation mode %d; Security fuse %s\n",
-                   GetGALName(gal_type),
+                   GetGALName(cfg->gal_type),
                    modus,
                    cfg->JedecSecBit ? "on" : "off");
         }
@@ -591,7 +613,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (*actptr == '.') {
             actptr++;
 
-            if (gal_type == GAL22V10 && (actPin.p_Pin == 24 || actPin.p_Pin == 25)) {
+            if (cfg->gal_type == GAL22V10 && (actPin.p_Pin == 24 || actPin.p_Pin == 25)) {
                 AsmError(39, 0); /* no suffix allowed at */
                 return (-1);     /* AR and SP */
             }
@@ -626,9 +648,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 return (-1);
             }
 
-            /* check whether suffix is */
-            /* allowed or not */
-            if (gal_type != GAL20RA10) {
+            /* check whether suffix is allowed or not */
+            if (cfg->gal_type != GAL20RA10) {
                 switch (suffix) {
                     case SUFFIX_CLK:
                         AsmError(34, 0); /* no .CLK allowed */
@@ -655,9 +676,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         actOLMC = (int)actPin.p_Pin; /* save offset of OLMC */
 
-        if (gal_type == GAL16V8)
+        if (cfg->gal_type == GAL16V8)
             actOLMC -= 12;
-        else if (gal_type == GAL20V8)
+        else if (cfg->gal_type == GAL20V8)
             actOLMC -= 15;
         else
             actOLMC -= 14;
@@ -667,14 +688,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         if (!pass) {
             /* is pin a OLMC pin? */
-            if (((gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
-                ((gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
+            if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
+                ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
                  (actPin.p_Pin <= DUMMY_OLMC12)) ||
-                ((gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
+                ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 /* get OLMC number */
-                switch (gal_type) {
+                switch (cfg->gal_type) {
                     case GAL16V8:
                         n = actPin.p_Pin - 12;
                         break;
@@ -710,7 +731,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                                 OLMC[n].PinType = COM_TRI_OUT; /* not defined */
                                                                /* explicitly  */
                         } else {
-                            if (gal_type == GAL22V10 && (n == 10 || n == 11)) {
+                            if (cfg->gal_type == GAL22V10 && (n == 10 || n == 11)) {
                                 AsmError(40, 0); /* AR or SP is defined */
                                 return (-1);     /* twice               */
                             } else {
@@ -743,7 +764,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
 
                         if (OLMC[n].PinType == REGOUT &&
-                            (gal_type == GAL16V8 || gal_type == GAL20V8)) {
+                            (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8)) {
                             AsmError(23, 0); /* GAL16V8/20V8: tristate control */
                             return (-1);     /* for reg. output is not allowed */
                         }
@@ -836,9 +857,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         start_row = max_row = 0;
 
-        switch (gal_type) { /* get first the row of the */
-            case GAL16V8:   /* OLMC and the number of   */
-            case GAL20V8:   /* rows which areavailable  */
+        switch (cfg->gal_type) { /* get first the row of the */
+            case GAL16V8:        /* OLMC and the number of   */
+            case GAL20V8:        /* rows which areavailable  */
                 start_row = ToOLMC[actOLMC];
                 max_row = 8;
                 break;
@@ -869,10 +890,10 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         oldptr = actptr; /* save pointer */
 
-        IsPinName(pinnames, num_of_pins);
+        IsPinName(pinnames, cfg->num_of_pins);
 
-        if (gal_type == GAL22V10 && !actPin.p_Pin) { /* AR and SP is not allowed */
-            Is_AR_SP(oldptr);                        /* in terms of an equation  */
+        if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) { /* AR and SP is not allowed */
+            Is_AR_SP(oldptr);                             /* in terms of an equation  */
 
             if (actPin.p_Pin) {
                 AsmError(31, 0);
@@ -906,16 +927,15 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         /* 1st pass */
         if (!pass) {
-            if (((gal_type == GAL16V8) && /* is this pin an OLMC pin? */
+            if (((cfg->gal_type == GAL16V8) && /* is this pin an OLMC pin? */
                  (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
-                ((gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
+                ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
                  (actPin.p_Pin <= DUMMY_OLMC12)) ||
-                ((gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
+                ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
-
-                switch (gal_type) /* get OLMC number */
-                {
+                /* get OLMC number */
+                switch (cfg->gal_type) {
                     case GAL16V8:
                         n = actPin.p_Pin - 12;
                         break;
@@ -941,7 +961,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         /* in pass 2 we have to make the fuse matrix */
         if (pass) {
             /* get row offset */
-            switch (gal_type) {
+            switch (cfg->gal_type) {
                 case GAL16V8:
                 case GAL20V8:
                     if (suffix == SUFFIX_E) /* when tristate control use */
@@ -990,16 +1010,16 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             pin_num = actPin.p_Pin;
 
             /* is there a valuation of GAL's mode? */
-            if (gal_type == GAL16V8 || gal_type == GAL20V8) {
+            if (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8) {
 
                 /* valuation of mode 2? */
                 if (modus == MODE2) {
-                    if (gal_type == GAL16V8 && (pin_num == 12 || pin_num == 19)) {
+                    if (cfg->gal_type == GAL16V8 && (pin_num == 12 || pin_num == 19)) {
                         AsmError(20, 0);
                         return (-1);
                     }
 
-                    if (gal_type == GAL20V8 && (pin_num == 15 || pin_num == 22)) {
+                    if (cfg->gal_type == GAL20V8 && (pin_num == 15 || pin_num == 22)) {
                         AsmError(21, 0);
                         return (-1);
                     }
@@ -1007,12 +1027,12 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                 /* valuation of mode 3? */
                 if (modus == MODE3) {
-                    if (gal_type == GAL16V8 && (pin_num == 1 || pin_num == 11)) {
+                    if (cfg->gal_type == GAL16V8 && (pin_num == 1 || pin_num == 11)) {
                         AsmError(26, 0);
                         return (-1);
                     }
 
-                    if (gal_type == GAL20V8 && (pin_num == 1 || pin_num == 13)) {
+                    if (cfg->gal_type == GAL20V8 && (pin_num == 1 || pin_num == 13)) {
                         AsmError(27, 0);
                         return (-1);
                     }
@@ -1020,7 +1040,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             /* valuation of 20RA10? */
-            if (gal_type == GAL20RA10) {
+            if (cfg->gal_type == GAL20RA10) {
                 if (pin_num == 1) { /* pin 1 is reserved for /PL (preload) */
                     AsmError(37, 0);
                     return (-1);
@@ -1033,7 +1053,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             /* if GND, set row equal 0 */
-            if (pin_num == num_of_pins || pin_num == num_of_pins / 2) {
+            if (pin_num == cfg->num_of_pins || pin_num == cfg->num_of_pins / 2) {
 
                 /* /VCC and /GND are not allowed */
                 if (actPin.p_Neg) {
@@ -1042,7 +1062,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 }
 
                 if (!prevOp && !IsAND(*actptr) && !IsOR(*actptr)) {
-                    if (pin_num == num_of_pins / 2) {
+                    if (pin_num == cfg->num_of_pins / 2) {
                         m = (start_row + row_offset) * num_of_col;
 
                         /* set row equal 0 */
@@ -1057,14 +1077,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             } else {
                 if (suffix == SUFFIX_E || suffix == SUFFIX_CLK || suffix == SUFFIX_ARST ||
                     suffix == SUFFIX_APRST ||
-                    (gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))) {
+                    (cfg->gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))) {
 
                     if (IsOR(prevOp)) {  /* max. one product term   */
                         AsmError(29, 0); /* for CLK, ARST, APRST, E */
                         return (-1);     /* and 22V10: AR, SP       */
                     }
 
-                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, gal_type);
+                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, cfg->gal_type);
                 } else {
                     if (IsOR(prevOp)) { /* OR operation? yes, then */
                         row_offset++;   /* take the next row       */
@@ -1075,7 +1095,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         }
                     }
                     /* set ANDs */
-                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, gal_type);
+                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, cfg->gal_type);
                 }
             }
 
@@ -1108,13 +1128,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
             oldptr = actptr;
 
-            IsPinName(pinnames, num_of_pins);
+            IsPinName(pinnames, cfg->num_of_pins);
 
-            if (gal_type == GAL22V10 && !actPin.p_Pin) { /* no pin name? then  */
-                Is_AR_SP(oldptr);                        /* check whether name */
-                                                         /* is AR or SP        */
-                if (actPin.p_Pin && actPin.p_Neg) {      /* but no negation of */
-                    AsmError(32, 0);                     /* AR or SP           */
+            if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) { /* no pin name? then  */
+                Is_AR_SP(oldptr);                             /* check whether name */
+                                                              /* is AR or SP        */
+                if (actPin.p_Pin && actPin.p_Neg) {           /* but no negation of */
+                    AsmError(32, 0);                          /* AR or SP           */
                     return (-1);
                 }
             }
@@ -1143,9 +1163,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (OLMC[n].PinType == NOTUSED || OLMC[n].PinType == INPUT) {
             int i = 0;
 
-            switch (gal_type) { /* get first row of the     */
-                case GAL16V8:   /* OLMC and the number of   */
-                case GAL20V8:   /* rows which are available */
+            switch (cfg->gal_type) { /* get first row of the     */
+                case GAL16V8:        /* OLMC and the number of   */
+                case GAL20V8:        /* rows which are available */
                     l = ToOLMC[n];
                     i = 8;
                     break;
@@ -1171,7 +1191,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
     }
 
-    if (gal_type == GAL22V10) {
+    if (cfg->gal_type == GAL22V10) {
         if (!OLMC[10].PinType) {
             for (n = 0; n < num_of_col; n++) {
                 Jedec.GALLogic[n] = 0;
@@ -1187,7 +1207,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     }
 
     /* set unused CLK, ARST and APRST equal 0    */
-    if (gal_type == GAL20RA10) {
+    if (cfg->gal_type == GAL20RA10) {
         for (n = 0; n < num_of_olmcs; n++) {
             /* is OLMC used? */
             if (OLMC[n].PinType != NOTUSED) {
@@ -1238,7 +1258,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             char* fusFilename = strdup(file);
             int rc = GetBaseName2(file, "fus", fusFilename);
             if (!rc) {
-                WriteFuseFile(fusFilename, gal_type);
+                WriteFuseFile(fusFilename, cfg->gal_type);
             }
             free(fusFilename);
         }
@@ -1247,7 +1267,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             char* pinFilename = strdup(file);
             int rc = GetBaseName2(file, "pin", pinFilename);
             if (!rc) {
-                WritePinFile(pinFilename, gal_type);
+                WritePinFile(pinFilename, cfg->gal_type);
             }
             free(pinFilename);
         }
@@ -1256,7 +1276,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             char* chpFilename = strdup(file);
             int rc = GetBaseName2(file, "chp", chpFilename);
             if (!rc) {
-                WriteChipFile(chpFilename, gal_type);
+                WriteChipFile(chpFilename, cfg->gal_type);
             }
             free(chpFilename);
         }
@@ -1264,7 +1284,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     return 0;
 }
-
 
 /******************************************************************************
 ** SetAND()

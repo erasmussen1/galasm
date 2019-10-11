@@ -8,13 +8,17 @@
  */
 typedef struct {
     int gal_type;
-    bool JedecSecBit; /* set security bit in JEDEC? */
+    bool JedecSecBit; /* set security bit in JEDEC?      */
     bool JedecFuseChk;
-    bool GenFuse; /* generate fuse file?        */
-    bool GenChip; /* generate chip file?        */
-    bool GenPin;  /* generate pin file?         */
-    /* calc. fuse checksum?       */
+    bool GenFuse; /* generate fuse file?                 */
+    bool GenChip; /* generate chip file?                 */
+    bool GenPin;  /* generate pin file?                  */
+    /* calc. fuse checksum?                              */
     /* azummo: if false, file checksum will be generated */
+
+    int num_of_olmcs; /* number of OLMCs                 */
+    int num_of_pins;  /* number of pins                  */
+    int num_of_col;   /* number of col.                  */
 } Config_t;
 
 #endif
