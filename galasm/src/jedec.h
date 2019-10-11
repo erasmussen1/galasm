@@ -45,12 +45,12 @@ struct ActBuffer {
     uint8_t* BuffEnd;        /* pointer to the end of the buffer */
 };
 
-void WriteJedecFile(char* filename, int galtype, Config_t* cfg);
+void WriteJedecFile(char* filename, int galtype, Config_t* jedecConf);
 int FileChecksum(struct ActBuffer buff);
 void initJedec(JedecStruct_t* jedec);
 void setMode(JedecStruct_t* jedec, int modus);
 int FuseChecksum(JedecStruct_t* jedec, int galtype);
-int MakeJedecBuff(JedecStruct_t* jedec, int JedecFuseChk, int JedecSecBit, struct ActBuffer buff, int galtype);
+int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, struct ActBuffer buff);
 
 #endif
 
