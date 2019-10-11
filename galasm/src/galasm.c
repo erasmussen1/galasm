@@ -1265,7 +1265,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             char* pinFilename = strdup(file);
             int rc = GetBaseName2(file, "pin", pinFilename);
             if (!rc) {
-                WritePinFile(pinFilename, cfg->gal_type);
+                WritePinFile(pinFilename, cfg);
             }
             free(pinFilename);
         }
@@ -1274,7 +1274,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             char* chpFilename = strdup(file);
             int rc = GetBaseName2(file, "chp", chpFilename);
             if (!rc) {
-                WriteChipFile(chpFilename, cfg->gal_type);
+                WriteChipFile(chpFilename, cfg);
             }
             free(chpFilename);
         }
@@ -1576,18 +1576,6 @@ int IsNEG(char chr) {
     return (0);
 }
 
-/********************************************************/
-/* the following routines are for the creation of the   */
-/* documentation files                                  */
-/********************************************************/
-int GetPinNum(int gal_type) {
-    if (gal_type == GAL16V8) {
-        return (20);
-    }
-
-    return (24);
-}
-
 /******************************************************************************
 ** WriteChipFile(char *filename, int gal_type)
 *******************************************************************************
@@ -1598,8 +1586,7 @@ int GetPinNum(int gal_type) {
 **
 ** remarks: make chip file
 ******************************************************************************/
-void WriteChipFile(char* filename, int gal_type) {
-
+void WriteChipFile(char* filename, Config_t *cfg) {
     FILE* fp = fopen(filename, (char*)"w");
     if (!fp) {
         return;
@@ -1609,19 +1596,19 @@ void WriteChipFile(char* filename, int gal_type) {
 
     WriteSpaces(fp, 31);
 
-    if (gal_type == GAL16V8) {
+    if (cfg->gal_type == GAL16V8) {
         fprintf(fp, " GAL16V8\n\n");
     }
 
-    if (gal_type == GAL20V8) {
+    if (cfg->gal_type == GAL20V8) {
         fprintf(fp, " GAL20V8\n\n");
     }
 
-    if (gal_type == GAL22V10) {
+    if (cfg->gal_type == GAL22V10) {
         fprintf(fp, " GAL22V10\n\n");
     }
 
-    if (gal_type == GAL20RA10) {
+    if (cfg->gal_type == GAL20RA10) {
         fprintf(fp, "GAL20RA10\n\n");
     }
 
@@ -1629,19 +1616,17 @@ void WriteChipFile(char* filename, int gal_type) {
 
     fprintf(fp, "-------\\___/-------\n");
 
-    int num_of_pins = GetPinNum(gal_type);
-
-    for (int n = 0; n < num_of_pins / 2; n++) {
+    for (int n = 0; n < cfg->num_of_pins / 2; n++) {
         WriteSpaces(fp, 25 - (int)strlen((char*)(pinnames + n * 10)));
 
         fprintf(fp,
                 "%s | %2d           %2d | %s\n",
                 pinnames + n * 10,
                 n + 1,
-                num_of_pins - n,
-                pinnames + (num_of_pins - n - 1) * 10);
+                cfg->num_of_pins - n,
+                pinnames + (cfg->num_of_pins - n - 1) * 10);
 
-        if (n < num_of_pins / 2 - 1) {
+        if (n < cfg->num_of_pins / 2 - 1) {
             WriteSpaces(fp, 26);
             fprintf(fp, "|                 |\n");
         }
@@ -1667,101 +1652,87 @@ void WriteChipFile(char* filename, int gal_type) {
 **
 ** remarks: make pin file
 ******************************************************************************/
-
-void WritePinFile(char* filename, int gal_type) {
-    FILE* fp;
+void WritePinFile(char* filename, Config_t* cfg) {
     int k, n, flag;
 
-    int num_of_pins = GetPinNum(gal_type);
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        ErrorReq(13);
+        return;
+    }
 
-    printf("=======> %s <===\n", filename);
+    fprintf(fp, "\n\n");
+    fprintf(fp, " Pin # | Name     | Pin Type\n");
+    fprintf(fp, "-----------------------------\n");
 
-    if ((fp = fopen(filename, (char*)"w"))) {
-        fprintf(fp, "\n\n");
+    for (n = 1; n <= cfg->num_of_pins; n++) {
+        fprintf(fp, "  %2d   | ", n);
+        fprintf(fp, "%s", pinnames + (n - 1) * 10);
+        WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
 
-        fprintf(fp, " Pin # | Name     | Pin Type\n");
+        flag = 0;
+        if (n == cfg->num_of_pins / 2) {
+            fprintf(fp, "| GND\n");
+            flag = 1;
+        }
 
-        fprintf(fp, "-----------------------------\n");
+        if (n == cfg->num_of_pins) {
+            fprintf(fp, "| VCC\n\n");
+            flag = 1;
+        }
 
-        for (n = 1; n <= num_of_pins; n++) {
-            fprintf(fp, "  %2d   | ", n);
-
-            fprintf(fp, "%s", pinnames + (n - 1) * 10);
-
-            WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
-
-            flag = 0;
-
-            if (n == num_of_pins / 2) {
-                fprintf(fp, "| GND\n");
+        if (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8) {
+            if (modus == MODE3 && n == 1) {
+                fprintf(fp, "| Clock\n");
                 flag = 1;
             }
 
-            if (n == num_of_pins) {
-                fprintf(fp, "| VCC\n\n");
-                flag = 1;
-            }
-
-
-            if (gal_type == GAL16V8 || gal_type == GAL20V8) {
-
-                if (modus == MODE3 && n == 1) {
-                    fprintf(fp, "| Clock\n");
+            if (modus == MODE3) {
+                if (cfg->gal_type == GAL16V8 && n == 11) {
+                    fprintf(fp, "| /OE\n");
                     flag = 1;
                 }
 
-                if (modus == MODE3) {
-                    if (gal_type == GAL16V8 && n == 11) {
-                        fprintf(fp, "| /OE\n");
-                        flag = 1;
-                    }
-
-                    if (gal_type == GAL20V8 && n == 13) {
-                        fprintf(fp, "| /OE\n");
-                        flag = 1;
-                    }
+                if (cfg->gal_type == GAL20V8 && n == 13) {
+                    fprintf(fp, "| /OE\n");
+                    flag = 1;
                 }
             }
-
-            if (gal_type == GAL22V10 && n == 1) {
-                fprintf(fp, "| Clock/Input\n");
-                flag = 1;
-            }
-
-            /* OLMC pin?*/
-
-            if ((gal_type == GAL16V8 && n >= 12 && n <= 19) ||
-                (gal_type == GAL20V8 && n >= 15 && n <= 22) ||
-                (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
-                (gal_type == GAL22V10 && n >= 14 && n <= 23)) {
-
-
-                if (gal_type == GAL16V8)
-                    k = n - 12;
-                else if (gal_type == GAL20V8)
-                    k = n - 15;
-                else
-                    k = n - 14;
-
-                if (OLMC[k].PinType != INPUT)
-                    if (OLMC[k].PinType)
-                        fprintf(fp, "| Output\n");
-                    else
-                        fprintf(fp, "| NC\n");
-                else
-                    fprintf(fp, "| Input\n");
-            } else {
-                if (!flag)
-                    fprintf(fp, "| Input\n");
-            }
         }
 
-        if (fclose(fp) == EOF) {
-            ErrorReq(8); /* can't close file */
-            return;
+        if (cfg->gal_type == GAL22V10 && n == 1) {
+            fprintf(fp, "| Clock/Input\n");
+            flag = 1;
         }
-    } else {
-        ErrorReq(13);
+
+        /* OLMC pin?*/
+        if ((cfg->gal_type == GAL16V8 && n >= 12 && n <= 19) ||
+            (cfg->gal_type == GAL20V8 && n >= 15 && n <= 22) ||
+            (cfg->gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
+            (cfg->gal_type == GAL22V10 && n >= 14 && n <= 23)) {
+
+            if (cfg->gal_type == GAL16V8)
+                k = n - 12;
+            else if (cfg->gal_type == GAL20V8)
+                k = n - 15;
+            else
+                k = n - 14;
+
+            if (OLMC[k].PinType != INPUT)
+                if (OLMC[k].PinType)
+                    fprintf(fp, "| Output\n");
+                else
+                    fprintf(fp, "| NC\n");
+            else
+                fprintf(fp, "| Input\n");
+        } else {
+            if (!flag)
+                fprintf(fp, "| Input\n");
+        }
+    }
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8); /* can't close file */
         return;
     }
 }

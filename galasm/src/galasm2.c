@@ -27,13 +27,14 @@ int assemblePldFile(const char* filename,
         return -1;
     }
 
-    int rc = ReadFile(filename, fileSize, buffer);
-    if (!rc) {
+    bool ok = ReadFile(filename, fileSize, buffer);
+    if (!ok) {
+        free(buffer);
         ErrorReq(3);
         return -1;
     }
 
-    rc = AssemblePldFile(filename, buffer, fileSize, &cfg);
+    int rc = AssemblePldFile(filename, buffer, fileSize, &cfg);
     free(buffer);
 
     return rc;
