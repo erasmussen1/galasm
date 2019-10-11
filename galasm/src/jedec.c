@@ -90,10 +90,9 @@ int FileChecksum(struct ActBuffer buff) {
 ******************************************************************************/
 
 int FuseChecksum(JedecStruct_t* jedec, int galtype) {
-
-    uint8_t *ptr = &jedec->GALLogic[0] - 1L;
-    uint8_t *ptrXOR = &jedec->GALXOR[0];
-    uint8_t *ptrS1 = &jedec->GALS1[0];
+    uint8_t *ptr = jedec->GALLogic - 1L;
+    uint8_t *ptrXOR = jedec->GALXOR;
+    uint8_t *ptrS1 = jedec->GALS1;
 
     int n = 0;
     int checksum = 0;
@@ -102,10 +101,10 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
     for (;;) {
         if (galtype == GAL16V8) {
             if (n == XOR16) {
-                ptr = &jedec->GALXOR[0];
+                ptr = jedec->GALXOR;
             } else {
                 if (n == XOR16 + 8) {
-                    ptr = &jedec->GALSig[0];
+                    ptr = jedec->GALSig;
                 } else {
                     if (n == NUMOFFUSES16)
                         break;
@@ -117,10 +116,10 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
 
         if (galtype == GAL20V8) {
             if (n == XOR20) {
-                ptr = &jedec->GALXOR[0];
+                ptr = jedec->GALXOR;
             } else {
                 if (n == XOR20 + 8) {
-                    ptr = &jedec->GALSig[0];
+                    ptr = jedec->GALSig;
                 } else {
                     if (n == NUMOFFUSES20)
                         break;
@@ -138,7 +137,7 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
                     ptr = ptrS1++;
             } else {
                 if (n == SIG22V10)
-                    ptr = &jedec->GALSig[0] - 1L;
+                    ptr = jedec->GALSig - 1L;
 
                 if (n == SIG22V10 + SIG_SIZE)
                     break;
@@ -149,7 +148,7 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
 
         if (galtype == GAL20RA10) {
             if (n == XOR20RA10) {
-                ptr = &jedec->GALXOR[0];
+                ptr = jedec->GALXOR;
             } else {
                 if (n == SIG20RA10 + SIG_SIZE)
                     break;
@@ -185,7 +184,7 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
 **
 ** remarks: generates the JEDEC file in a ram buffer
 ******************************************************************************/
-int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
+int MakeJedecBuff(JedecStruct_t* jedec, int JedecFuseChk, int JedecSecBit, struct ActBuffer buff, int galtype) {
     UBYTE mystrng[255];
     struct ActBuffer buff2;
     int n, m, bitnum, bitnum2, flag;
@@ -217,10 +216,9 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
             break;
     }
 
-
     buff2 = buff;
 
-    if (!cfg->JedecFuseChk) {
+    if (!JedecFuseChk) {
         if (AddString(&buff, (UBYTE*)"\2\n")) { /* <STX> */
             return (-1);
         }
@@ -259,7 +257,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
     }
 
     /* Security-Bit */
-    if (cfg->JedecSecBit) {
+    if (JedecSecBit) {
         if (AddString(&buff, (UBYTE*)"*G1\n")) {
             return (-1);
         }
@@ -294,7 +292,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
         bitnum2 = bitnum;
 
         for (n = 0; n <= MaxFuseAdr; n++) {
-            if (Jedec.GALLogic[bitnum2]) {
+            if (jedec->GALLogic[bitnum2]) {
                 flag = 1;
                 break;
             }
@@ -309,7 +307,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
                 return (-1);
 
             for (n = 0; n <= MaxFuseAdr; n++) {
-                if (AddByte(&buff, (UBYTE)(Jedec.GALLogic[bitnum] + '0')))
+                if (AddByte(&buff, (uint8_t)(jedec->GALLogic[bitnum] + '0')))
                     return (-1);
                 bitnum++;
             }
@@ -331,20 +329,20 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
         return (-1);
 
     for (n = 0; n < XORSize; n++) {
-        if (AddByte(&buff, (UBYTE)(Jedec.GALXOR[n] + '0')))
+        if (AddByte(&buff, (uint8_t)(jedec->GALXOR[n] + '0')))
             return (-1);
         bitnum++;
 
         if (galtype == GAL22V10) { /*** S1 of 22V10 ***/
-            if (AddByte(&buff, (UBYTE)(Jedec.GALS1[n] + '0')))
+            if (AddByte(&buff, (uint8_t)(jedec->GALS1[n] + '0')))
                 return (-1);
             bitnum++;
         }
     }
 
-    if (AddByte(&buff, (UBYTE)'\n'))
+    if (AddByte(&buff, (UBYTE)'\n')) {
         return (-1);
-
+    }
 
     /*** Signature ***/
     sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
@@ -353,8 +351,9 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
         return (-1);
 
     for (n = 0; n < SIG_SIZE; n++) {
-        if (AddByte(&buff, (UBYTE)(Jedec.GALSig[n] + '0')))
+        if (AddByte(&buff, (uint8_t)(jedec->GALSig[n] + '0'))) {
             return (-1);
+        }
         bitnum++;
     }
 
@@ -363,13 +362,14 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 
 
     if ((galtype == GAL16V8) || (galtype == GAL20V8)) {
+
         /*** AC1-Bits ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
         if (AddString(&buff, (UBYTE*)&mystrng[0]))
             return (-1);
 
         for (n = 0; n < AC1_SIZE; n++) {
-            if (AddByte(&buff, (UBYTE)(Jedec.GALAC1[n] + '0')))
+            if (AddByte(&buff, (uint8_t)(jedec->GALAC1[n] + '0')))
                 return (-1);
             bitnum++;
         }
@@ -384,7 +384,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
             return (-1);
 
         for (n = 0; n < PT_SIZE; n++) {
-            if (AddByte(&buff, (UBYTE)(Jedec.GALPT[n] + '0')))
+            if (AddByte(&buff, (uint8_t)(jedec->GALPT[n] + '0')))
                 return (-1);
             bitnum++;
         }
@@ -399,7 +399,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
         if (AddString(&buff, (UBYTE*)&mystrng[0]))
             return (-1);
 
-        if (AddByte(&buff, (UBYTE)(Jedec.GALSYN + '0')))
+        if (AddByte(&buff, (uint8_t)(jedec->GALSYN + '0')))
             return (-1);
 
         if (AddByte(&buff, (UBYTE)'\n'))
@@ -407,14 +407,13 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 
         bitnum++;
 
-
         /*** AC0-Bit ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
 
         if (AddString(&buff, (UBYTE*)&mystrng[0]))
             return (-1);
 
-        if (AddByte(&buff, (UBYTE)(Jedec.GALAC0 + '0')))
+        if (AddByte(&buff, (uint8_t)(jedec->GALAC0 + '0')))
             return (-1);
 
         if (AddByte(&buff, (UBYTE)'\n'))
@@ -422,29 +421,29 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
     }
 
 
-    /*  if (cfg->JedecFuseChk)
-        {*/                                   /* add fuse-checksum */
-    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(&Jedec, galtype));
+    // if (JedecFuseChk) {
+    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(jedec, galtype));
 
-    if (AddString(&buff, (UBYTE*)&mystrng[0]))
+    if (AddString(&buff, (UBYTE*)&mystrng[0])) {
         return (-1);
-    /*    }*/
+    }
+    // }
 
-
-    if (AddString(&buff, (UBYTE*)"*\n")) /* closing '*' */
+    if (AddString(&buff, (UBYTE*)"*\n")) { /* closing '*' */
         return (-1);
+    }
 
-
-    if (!cfg->JedecFuseChk) {
-        if (AddByte(&buff, (UBYTE)0x3)) /* <ETX> */
+    if (!JedecFuseChk) {
+        if (AddByte(&buff, (UBYTE)0x3)) { /* <ETX> */
             return (-1);
+        }
 
         sprintf((char*)&mystrng[0], "%04x\n", FileChecksum(buff2));
 
-        if (AddString(&buff, (UBYTE*)&mystrng[0]))
+        if (AddString(&buff, (UBYTE*)&mystrng[0])) {
             return (-1);
+        }
     }
-
 
     return (0);
 }
@@ -460,7 +459,7 @@ int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg) {
 **
 ** remarks: generats the JEDEC file out of the JEDEC structure
 ******************************************************************************/
-void WriteJedecFile(char* filename, int galtype, struct Config* cfg) {
+void WriteJedecFile(char* filename, int galtype, Config_t* cfg) {
     struct ActBuffer mybuff;
     struct Buffer* first_buff;
     UBYTE *filebuffer, *filebuffer2;
@@ -477,7 +476,7 @@ void WriteJedecFile(char* filename, int galtype, struct Config* cfg) {
     mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(struct Buffer);
 
     /* put JEDEC in ram-buffer */
-    if (MakeJedecBuff(mybuff, galtype, cfg)) {
+    if (MakeJedecBuff(&Jedec, cfg->JedecFuseChk, cfg->JedecSecBit, mybuff, galtype)) {
         FreeBuffer(first_buff);
         ErrorReq(2);
         return;

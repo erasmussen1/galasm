@@ -157,7 +157,7 @@ int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
  *
  * remarks: This function does assemble a *.pld file.
  */
-int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Config* cfg) {
+int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t* cfg) {
     UBYTE chr;
     UBYTE *bool_start, *oldptr;
     char prevOp;
@@ -240,6 +240,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, struct Co
         AsmError(1, 0);
         return (-1);
     }
+    cfg->gal_type = gal_type;
 
     /*** get the leading 8 bytes of the second ***/
     /*** line as signature                     ***/

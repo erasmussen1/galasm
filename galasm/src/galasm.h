@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "jedec_config.h"
 #include "jedec.h"
 
 
@@ -117,11 +118,7 @@
 #define MODE2 2
 #define MODE3 3
 
-
-#define MAX_SUFFIX_SIZE 6 /* max. string length of a legal */
-                          /* suffix */
-
-#define ENTRY_SIZE 256 /* number of entries per buffer */
+#define MAX_SUFFIX_SIZE 6 /* max. string length of a legal suffix */
 
 #define SIZE_OF_EQUASTRING 80
 
@@ -154,18 +151,6 @@ typedef unsigned char* STRPTR; /* string pointer (NULL terminated) */
 
 /******************************** structures *********************************/
 
-/* this structure is used to store   */
-/* GALasm's configuration             */
-struct Config {
-    BOOL GenFuse;     /* generate fuse file?        */
-    BOOL GenChip;     /* generate chip file?        */
-    BOOL GenPin;      /* generate pin file?         */
-    BOOL JedecSecBit; /* set security bit in JEDEC? */
-    BOOL JedecFuseChk;
-        /* calc. fuse checksum?       */ /* azummo: if false, file checksum will be generated */
-};
-
-
 
 /* used to store infos about a pin */
 struct Pin {
@@ -174,7 +159,6 @@ struct Pin {
 };
 
 /* used to store infos about an OLMC */
-
 struct GAL_OLMC {
     BYTE Active;   /* output's polarity           */
     BYTE PinType;  /* type of pin (input,...)     */
@@ -185,27 +169,6 @@ struct GAL_OLMC {
     BYTE FeedBack; /* is there a feedback?        */
 };
 
-/* this structure is used to store  */
-/* some datas in a chained list     */
-/* e.g. the coded equations for the */
-/* optimizer                        */
-
-struct Buffer {
-    struct Buffer* Next;
-    struct Buffer* Prev;
-    UBYTE Entries[ENTRY_SIZE]; /* data area */
-};
-
-/* used to store results and     */
-/* parameters of functions       */
-/* which deal with chained lists */
-
-struct ActBuffer {
-    struct Buffer* ThisBuff; /* pointer to current buffer */
-    UBYTE* Entry;            /* pointer to data area      */
-    UBYTE* BuffEnd;          /* pointer to the end of the */
-};                           /* buffer                    */
-
 /********************************** globals **********************************/
 // extern JedecStruct_t jedec;
 extern char* ErrorArray[];
@@ -213,10 +176,10 @@ extern char* AsmErrorArray[];
 
 /*************************** function declartions ****************************/
 
-int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, struct Config* cfg);
+int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t* cfg);
 int GetBaseName2(const char* filename, const char *ext, char* newfilename);
 
-/*GALasm .c */
+/* GALasm.c */
 void SetAND(int row, int pinnum, int negation, int gal_type);
 void IsPinName(UBYTE* pinnames, int numofpins);
 int GetNextChar(void);
@@ -233,7 +196,6 @@ int IsNEG(char);
 void Is_AR_SP(UBYTE* ptr);
 int GetPinNum(int gal_type);
 
-
 /* support.c */
 int FileSize(const char* filename);
 int ReadFile(const char* filename, int filesize, UBYTE* filebuff);
@@ -245,8 +207,4 @@ void FreeBuffer(struct Buffer* buff);
 char* GetGALName(int galtype);
 void ErrorReq(int errornum);
 
-/* jedec.c */
-int FileChecksum(struct ActBuffer buff);
-int MakeJedecBuff(struct ActBuffer buff, int galtype, struct Config* cfg);
-void WriteJedecFile(char* filename, int galtype, struct Config* cfg);
 

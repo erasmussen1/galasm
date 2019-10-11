@@ -12,7 +12,7 @@ int assemblePldFile(const char* filename,
                     int GenPin,
                     int JedecSecBit,
                     int JedecFuseChk) {  // This version is called from main
-    struct Config cfg;
+    Config_t cfg;
     cfg.GenFuse = GenFuse;
     cfg.GenChip = GenChip;
     cfg.GenPin = GenPin;
@@ -47,7 +47,7 @@ int assemblePldMemory(const char* filename,
                       int GenPin,
                       int JedecSecBit,
                       int JedecFuseChk) {
-    struct Config cfg;
+    Config_t cfg;
     cfg.GenFuse = GenFuse;
     cfg.GenChip = GenChip;
     cfg.GenPin = GenPin;
