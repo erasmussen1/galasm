@@ -20,11 +20,7 @@ static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
 
 void initJedec(JedecStruct_t* jedec) {
     memset(jedec, 0x00, sizeof(*jedec));
-    // memset(&jedec->GALLogic, 1, sizeof(*jedec->GALLogic));
-
-    for (int i = 0; i < 5808; i++) {
-        jedec->GALLogic[i] = 1;
-    }
+    memset(jedec->GALLogic, 1, sizeof(jedec->GALLogic));
 }
 
 void setMode(JedecStruct_t* jedec, int modus) {
