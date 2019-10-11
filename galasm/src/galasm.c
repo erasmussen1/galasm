@@ -7,10 +7,6 @@
 ** This file contains the GAL-assembler.
 **
 ******************************************************************************/
-
-
-/********************************* includes **********************************/
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +17,6 @@
 
 
 /********************************** defines **********************************/
-
 #define SUFFIX_NON 0 /* possible suffixes */
 #define SUFFIX_T 1
 #define SUFFIX_R 2
@@ -35,8 +30,6 @@
 
 
 /******************************** variables **********************************/
-
-
 /* Diese Arrays geben an, in welche Spalte der ent-  */
 /* sprechende Pin eingekoppelt (bzw. rückgekoppelt)  */
 /* wird. Für die invertierende Einkopplung ist 1 zu  */
@@ -116,8 +109,8 @@ UBYTE ModeErrorStr[] = "Mode  x:  Pin xx";
 UBYTE* pinnames;
 int modus;
 int linenum;
-UBYTE *actptr;
-UBYTE *buffend;
+UBYTE* actptr;
+UBYTE* buffend;
 
 JedecStruct_t Jedec;
 
@@ -1237,7 +1230,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         char* jedFilename = strdup(file);
         int rc = GetBaseName2(file, "jed", jedFilename);
         if (!rc) {
-            WriteJedecFile(jedFilename, gal_type, cfg);
+            WriteJedecFile(jedFilename, cfg);
         }
         free(jedFilename);
 
@@ -1465,7 +1458,7 @@ int GetNextChar(void) {
                 actptr++;
                 break;
 
-            case ';':  /* comment found? then skip rest of line */
+            case ';': /* comment found? then skip rest of line */
                 if (GetNextLine()) {
                     return (0);
                 }
@@ -1589,63 +1582,63 @@ int GetPinNum(int gal_type) {
 ** remarks: make chip file
 ******************************************************************************/
 void WriteChipFile(char* filename, int gal_type) {
-    FILE* fp;
-    int n;
+
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        return;
+    }
+
+    fprintf(fp, "\n\n");
+
+    WriteSpaces(fp, 31);
+
+    if (gal_type == GAL16V8) {
+        fprintf(fp, " GAL16V8\n\n");
+    }
+
+    if (gal_type == GAL20V8) {
+        fprintf(fp, " GAL20V8\n\n");
+    }
+
+    if (gal_type == GAL22V10) {
+        fprintf(fp, " GAL22V10\n\n");
+    }
+
+    if (gal_type == GAL20RA10) {
+        fprintf(fp, "GAL20RA10\n\n");
+    }
+
+    WriteSpaces(fp, 26);
+
+    fprintf(fp, "-------\\___/-------\n");
 
     int num_of_pins = GetPinNum(gal_type);
 
-    if ((fp = fopen(filename, (char*)"w"))) {
+    for (int n = 0; n < num_of_pins / 2; n++) {
+        WriteSpaces(fp, 25 - (int)strlen((char*)(pinnames + n * 10)));
 
-        fprintf(fp, "\n\n");
+        fprintf(fp,
+                "%s | %2d           %2d | %s\n",
+                pinnames + n * 10,
+                n + 1,
+                num_of_pins - n,
+                pinnames + (num_of_pins - n - 1) * 10);
 
-        WriteSpaces(fp, 31);
-
-        if (gal_type == GAL16V8)
-            fprintf(fp, " GAL16V8\n\n");
-
-        if (gal_type == GAL20V8)
-            fprintf(fp, " GAL20V8\n\n");
-
-        if (gal_type == GAL22V10)
-            fprintf(fp, " GAL22V10\n\n");
-
-        if (gal_type == GAL20RA10)
-            fprintf(fp, "GAL20RA10\n\n");
-
-
-        WriteSpaces(fp, 26);
-
-        fprintf(fp, "-------\\___/-------\n");
-
-        for (n = 0; n < num_of_pins / 2; n++) {
-
-            WriteSpaces(fp, 25 - (int)strlen((char*)(pinnames + n * 10)));
-
-            fprintf(fp,
-                    "%s | %2d           %2d | %s\n",
-                    pinnames + n * 10,
-                    n + 1,
-                    num_of_pins - n,
-                    pinnames + (num_of_pins - n - 1) * 10);
-
-            if (n < num_of_pins / 2 - 1) {
-                WriteSpaces(fp, 26);
-
-                fprintf(fp, "|                 |\n");
-            }
-        }
-
-        WriteSpaces(fp, 26);
-
-        fprintf(fp, "-------------------\n");
-
-        if (fclose(fp) == EOF) {
-            ErrorReq(8); /* can't close file */
-            return;
+        if (n < num_of_pins / 2 - 1) {
+            WriteSpaces(fp, 26);
+            fprintf(fp, "|                 |\n");
         }
     }
-}
 
+    WriteSpaces(fp, 26);
+
+    fprintf(fp, "-------------------\n");
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8); /* can't close file */
+        return;
+    }
+}
 
 /******************************************************************************
 ** WritePinFile(char é*filename, int gal_type)
@@ -1794,12 +1787,7 @@ void WriteRow(FILE* fp, int row, int num_of_col) {
 **
 ** remarks: make fuse file
 ******************************************************************************/
-
 void WriteFuseFile(char* filename, int gal_type) {
-
-    printf("=======> %s <===\n", filename);
-
-    FILE* fp;
     int row, pin, n, numofOLMCs, numofrows, olmc;
 
     int num_of_col = 0;
@@ -1815,77 +1803,70 @@ void WriteFuseFile(char* filename, int gal_type) {
             num_of_col = MAX_FUSE_ADR22V10 + 1;
     }
 
-    if ((fp = fopen(filename, (char*)"w"))) {
-        if (gal_type == GAL16V8) {
-            pin = 19;
-            numofOLMCs = 8;
-        } else if (gal_type == GAL20V8) {
-            pin = 22;
-            numofOLMCs = 8;
-        } else { /* 22V10, 20RA10 */
-            pin = 23;
-            numofOLMCs = 10;
-        }
-
-
-        row = 0;
-
-        for (olmc = 0; olmc < numofOLMCs; olmc++) {
-
-            if (gal_type == GAL22V10 && olmc == 0) { /* AR when 22V10 */
-                fprintf(fp, "\n\nAR");
-                WriteRow(fp, row, num_of_col);
-                row++;
-            }
-
-            if (gal_type == GAL22V10)            /* get number of rows */
-                numofrows = OLMCSize22V10[olmc]; /* of an OLMC         */
-            else
-                numofrows = 8;
-
-
-            fprintf(fp, "\n\nPin %2d = ", pin); /* print pin */
-
-            fprintf(fp, "%s", pinnames + (pin - 1) * 10);
-
-            WriteSpaces(fp, 13 - (int)strlen((char*)(pinnames + (pin - 1) * 10)));
-
-
-            if (gal_type == GAL16V8)
-                fprintf(
-                    fp, "XOR = %1d   AC1 = %1d", Jedec.GALXOR[19 - pin], Jedec.GALAC1[19 - pin]);
-            else if (gal_type == GAL20V8)
-                fprintf(
-                    fp, "XOR = %1d   AC1 = %1d", Jedec.GALXOR[22 - pin], Jedec.GALAC1[22 - pin]);
-            else if (gal_type == GAL22V10)
-                fprintf(fp, "S0 = %1d   S1 = %1d", Jedec.GALXOR[23 - pin], Jedec.GALAC1[23 - pin]);
-            else if (gal_type == GAL20RA10)
-                fprintf(fp, "S0 = %1d", Jedec.GALXOR[23 - pin]);
-
-
-            for (n = 0; n < numofrows; n++) { /* print all fuses of an OLMC */
-                WriteRow(fp, row, num_of_col);
-                row++;
-            }
-
-
-            if (gal_type == GAL22V10 && olmc == 9) { /* SP when 22V10 */
-                fprintf(fp, "\n\nSP");
-                WriteRow(fp, row, num_of_col);
-            }
-
-            pin--;
-        }
-
-
-        fprintf(fp, "\n\n");
-
-        if (fclose(fp) == EOF) {
-            ErrorReq(8); /* can't close file */
-            return;
-        }
-    } else {
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
         ErrorReq(13);
+        return;
+    }
+
+    if (gal_type == GAL16V8) {
+        pin = 19;
+        numofOLMCs = 8;
+    } else if (gal_type == GAL20V8) {
+        pin = 22;
+        numofOLMCs = 8;
+    } else { /* 22V10, 20RA10 */
+        pin = 23;
+        numofOLMCs = 10;
+    }
+
+    row = 0;
+
+    for (olmc = 0; olmc < numofOLMCs; olmc++) {
+
+        if (gal_type == GAL22V10 && olmc == 0) { /* AR when 22V10 */
+            fprintf(fp, "\n\nAR");
+            WriteRow(fp, row, num_of_col);
+            row++;
+        }
+
+        if (gal_type == GAL22V10)            /* get number of rows */
+            numofrows = OLMCSize22V10[olmc]; /* of an OLMC         */
+        else
+            numofrows = 8;
+
+        fprintf(fp, "\n\nPin %2d = ", pin); /* print pin */
+
+        fprintf(fp, "%s", pinnames + (pin - 1) * 10);
+
+        WriteSpaces(fp, 13 - (int)strlen((char*)(pinnames + (pin - 1) * 10)));
+
+        if (gal_type == GAL16V8)
+            fprintf(fp, "XOR = %1d   AC1 = %1d", Jedec.GALXOR[19 - pin], Jedec.GALAC1[19 - pin]);
+        else if (gal_type == GAL20V8)
+            fprintf(fp, "XOR = %1d   AC1 = %1d", Jedec.GALXOR[22 - pin], Jedec.GALAC1[22 - pin]);
+        else if (gal_type == GAL22V10)
+            fprintf(fp, "S0 = %1d   S1 = %1d", Jedec.GALXOR[23 - pin], Jedec.GALAC1[23 - pin]);
+        else if (gal_type == GAL20RA10)
+            fprintf(fp, "S0 = %1d", Jedec.GALXOR[23 - pin]);
+
+        for (n = 0; n < numofrows; n++) { /* print all fuses of an OLMC */
+            WriteRow(fp, row, num_of_col);
+            row++;
+        }
+
+        if (gal_type == GAL22V10 && olmc == 9) { /* SP when 22V10 */
+            fprintf(fp, "\n\nSP");
+            WriteRow(fp, row, num_of_col);
+        }
+
+        pin--;
+    }
+
+    fprintf(fp, "\n\n");
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8); /* can't close file */
         return;
     }
 }

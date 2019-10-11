@@ -8,13 +8,12 @@
 ********************************************************************************/
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "jedec_config.h"
 #include "jedec.h"
 
-
 /******************************* definitions *********************************/
-
 #define GAL16V8 1 /* GAL types */
 #define GAL20V8 2
 #define GAL22V10 3
@@ -39,6 +38,7 @@
 #define SYN16 2192
 #define AC016 2193
 #define NUMOFFUSES16 2194
+
 /* GAL20V8 */
 #define LOGIC20 0  /* location of the fuses */
 #define XOR20 2560 /* in the JEDEC file     */
@@ -122,35 +122,11 @@
 
 #define SIZE_OF_EQUASTRING 80
 
-typedef short BOOL;
-
-
-typedef void* APTR; /* 32-bit untyped pointer */
-
-typedef long LONG;              /* signed 32-bit quantity */
-typedef unsigned long ULONG;    /* unsigned 32-bit quantity */
-typedef unsigned long LONGBITS; /* 32 bits manipulated individually */
-typedef short WORD;             /* signed 16-bit quantity */
-typedef unsigned short UWORD;   /* unsigned 16-bit quantity */
-
 typedef signed char BYTE;    /* signed 8-bit quantity */
 typedef unsigned char UBYTE; /* unsigned 8-bit quantity */
 
-typedef unsigned char* STRPTR; /* string pointer (NULL terminated) */
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef NULL
-#define NULL 0L
-#endif
-
 
 /******************************** structures *********************************/
-
 
 /* used to store infos about a pin */
 struct Pin {
@@ -170,7 +146,6 @@ struct GAL_OLMC {
 };
 
 /********************************** globals **********************************/
-// extern JedecStruct_t jedec;
 extern char* ErrorArray[];
 extern char* AsmErrorArray[];
 
@@ -198,13 +173,12 @@ int GetPinNum(int gal_type);
 
 /* support.c */
 int FileSize(const char* filename);
-int ReadFile(const char* filename, int filesize, UBYTE* filebuff);
-int AddByte(struct ActBuffer* buff, UBYTE code);
-int AddString(struct ActBuffer* buff, UBYTE* strnptr);
-void IncPointer(struct ActBuffer* buff);
-void DecPointer(struct ActBuffer* buff);
-void FreeBuffer(struct Buffer* buff);
+bool ReadFile(const char* filename, int filesize, UBYTE* filebuff);
+int AddByte(ActBuffer_t* buff, UBYTE code);
+int AddString(ActBuffer_t* buff, UBYTE* strnptr);
+void IncPointer(ActBuffer_t* buff);
+void DecPointer(ActBuffer_t* buff);
+void FreeBuffer(Buffer_t* buff);
 char* GetGALName(int galtype);
 void ErrorReq(int errornum);
-
 

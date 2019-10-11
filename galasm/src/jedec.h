@@ -28,29 +28,29 @@ typedef struct {
  * this structure is used to store some datas in a chained list
  * e.g. the coded equations for the optimizer
  */
-struct Buffer {
-    struct Buffer* Next;
-    struct Buffer* Prev;
+typedef struct Buffer_t {
+    struct Buffer_t* Next;
+    struct Buffer_t* Prev;
     uint8_t Entries[ENTRY_SIZE]; /* data area */
-};
+} Buffer_t;
 
 /**
  * used to store results and
  * parameters of functions
  * which deal with chained lists
  */
-struct ActBuffer {
-    struct Buffer* ThisBuff; /* pointer to current buffer */
+typedef struct {
+    Buffer_t* ThisBuff; /* pointer to current buffer */
     uint8_t* Entry;          /* pointer to data area      */
     uint8_t* BuffEnd;        /* pointer to the end of the buffer */
-};
+} ActBuffer_t;
 
-void WriteJedecFile(char* filename, int galtype, Config_t* jedecConf);
-int FileChecksum(struct ActBuffer buff);
+int FileChecksum(ActBuffer_t buff);
 void initJedec(JedecStruct_t* jedec);
 void setMode(JedecStruct_t* jedec, int modus);
 int FuseChecksum(JedecStruct_t* jedec, int galtype);
-int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, struct ActBuffer buff);
+int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff);
+void WriteJedecFile(char* filename, Config_t* jedecConf);
 
 #endif
 

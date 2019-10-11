@@ -57,7 +57,7 @@ void setMode(JedecStruct_t* jedec, int modus) {
 **          the end of the area for which the checksum should be calculated
 **          must be marked by <STX> and <ETX>!.
 ******************************************************************************/
-int FileChecksum(struct ActBuffer buff) {
+int FileChecksum(ActBuffer_t buff) {
     int checksum = 0;
 
     /* search for <STX> */
@@ -88,7 +88,6 @@ int FileChecksum(struct ActBuffer buff) {
 ** remarks: This function does calculate the fuse checksum of the JEDEC
 **          structure.
 ******************************************************************************/
-
 int FuseChecksum(JedecStruct_t* jedec, int galtype) {
     uint8_t *ptr = jedec->GALLogic - 1L;
     uint8_t *ptrXOR = jedec->GALXOR;
@@ -172,6 +171,38 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
     return (checksum);
 }
 
+/**
+ * This variables are defined both globally AND locally!
+ * All assignments concern to the locale variables!
+ */
+static void getChipConfiguration(Config_t* cfg, int* MaxFuseAdr, int* RowSize, int* XORSize) {
+    switch (cfg->gal_type) {
+        case GAL16V8:
+            *MaxFuseAdr = MAX_FUSE_ADR16;
+            *RowSize = ROW_SIZE_16V8;
+            *XORSize = 8;
+            break;
+
+        case GAL20V8:
+            *MaxFuseAdr = MAX_FUSE_ADR20;
+            *RowSize = ROW_SIZE_20V8;
+            *XORSize = 8;
+            break;
+
+        case GAL22V10:
+            *MaxFuseAdr = MAX_FUSE_ADR22V10;
+            *RowSize = ROW_SIZE_22V10;
+            *XORSize = 10;
+            break;
+
+        case GAL20RA10:
+            *MaxFuseAdr = MAX_FUSE_ADR20RA10;
+            *RowSize = ROW_SIZE_20RA10;
+            *XORSize = 10;
+            break;
+    }
+}
+
 /******************************************************************************
 ** MakeJedecBuff()
 *******************************************************************************
@@ -184,39 +215,16 @@ int FuseChecksum(JedecStruct_t* jedec, int galtype) {
 **
 ** remarks: generates the JEDEC file in a ram buffer
 ******************************************************************************/
-int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, struct ActBuffer buff) {
+int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, ActBuffer_t buff) {
     UBYTE mystrng[255];
-    struct ActBuffer buff2;
+    ActBuffer_t buff2;
     int n, m, bitnum, bitnum2, flag;
-    int MaxFuseAdr = 0, RowSize = 0, XORSize = 0;
 
-    int galtype = cfg->gal_type;
+    int MaxFuseAdr = 0;
+    int RowSize = 0;
+    int XORSize = 0;
 
-    switch (galtype) {
-        case GAL16V8:
-            MaxFuseAdr = MAX_FUSE_ADR16; /* This variables are defined  */
-            RowSize = ROW_SIZE_16V8;     /* both globally AND locally!  */
-            XORSize = 8;                 /* All assignments concern to  */
-            break;                       /* the locale variables!!!!    */
-
-        case GAL20V8:
-            MaxFuseAdr = MAX_FUSE_ADR20;
-            RowSize = ROW_SIZE_20V8;
-            XORSize = 8;
-            break;
-
-        case GAL22V10:
-            MaxFuseAdr = MAX_FUSE_ADR22V10;
-            RowSize = ROW_SIZE_22V10;
-            XORSize = 10;
-            break;
-
-        case GAL20RA10:
-            MaxFuseAdr = MAX_FUSE_ADR20RA10;
-            RowSize = ROW_SIZE_20RA10;
-            XORSize = 10;
-            break;
-    }
+    getChipConfiguration(cfg, &MaxFuseAdr, &RowSize, &XORSize);
 
     buff2 = buff;
 
@@ -233,6 +241,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, struct ActBuffer buff) {
     if (AddString(&buff, (UBYTE*)"GAL-Assembler:  GALasm 2.1\n"))
         return (-1);
 
+    int galtype = cfg->gal_type;
     if (galtype == GAL16V8) {
         if (AddString(&buff, (UBYTE*)"Device:         GAL16V8\n\n"))
             return (-1);
@@ -424,7 +433,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, struct ActBuffer buff) {
 
 
     // if (cfg->JedecFuseChk) {
-    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(jedec, galtype));
+    sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(jedec, cfg->gal_type));
 
     if (AddString(&buff, (UBYTE*)&mystrng[0])) {
         return (-1);
@@ -450,7 +459,6 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, struct ActBuffer buff) {
     return (0);
 }
 
-
 /******************************************************************************
 ** WriteJedecFile()
 *******************************************************************************
@@ -461,63 +469,61 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, struct ActBuffer buff) {
 **
 ** remarks: generats the JEDEC file out of the JEDEC structure
 ******************************************************************************/
-void WriteJedecFile(char* filename, int galtype, Config_t* jedecConf) {
-    struct ActBuffer mybuff;
-    struct Buffer* first_buff;
+void WriteJedecFile(char* filename, Config_t* cfg) {
+    ActBuffer_t mybuff;
+    Buffer_t* first_buff;
     UBYTE *filebuffer, *filebuffer2;
-    long result;
-    FILE* fp;
 
-    if (!(first_buff = (struct Buffer*)calloc(sizeof(struct Buffer), 1))) {
+    if (!(first_buff = (Buffer_t*)calloc(sizeof(Buffer_t), 1))) {
         ErrorReq(2); /* out of memory? */
         return;
     }
 
     mybuff.ThisBuff = first_buff;
     mybuff.Entry = (UBYTE*)(&first_buff->Entries[0]);
-    mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(struct Buffer);
+    mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(Buffer_t);
 
     /* put JEDEC in ram-buffer */
-    if (MakeJedecBuff(&Jedec, jedecConf, mybuff)) {
+    if (MakeJedecBuff(&Jedec, cfg, mybuff)) {
         FreeBuffer(first_buff);
         ErrorReq(2);
         return;
     }
 
-    if ((fp = fopen(filename, "w"))) {
-        for (;;) {
-            filebuffer = filebuffer2 = mybuff.Entry;
-
-            while (filebuffer2 < mybuff.BuffEnd) { /* get size of buffer */
-                if (!*filebuffer2)
-                    break;
-                filebuffer2++;
-            }
-            /* save buffer */
-            /* DHH - 24-Oct-2012: ensure lines are terminated with CRLF */
-            result = WriteOutput(filebuffer, (size_t)1, (size_t)(filebuffer2 - filebuffer), fp);
-
-            if (result != (filebuffer2 - filebuffer)) { /* write error? */
-                fclose(fp);
-                FreeBuffer(first_buff);
-                ErrorReq(13);
-                return;
-            }
-
-            if (!mybuff.ThisBuff->Next) /* more buffers here? */
-                break;                  /* no, then cancel */
-
-            mybuff.ThisBuff = mybuff.ThisBuff->Next;
-            mybuff.Entry = (UBYTE*)(&mybuff.ThisBuff->Entries[0]);
-            mybuff.BuffEnd = (UBYTE*)mybuff.ThisBuff + (long)sizeof(struct Buffer);
-        }
-
-        fclose(fp);
-    } else {
+    FILE* fp = fopen(filename, "w");
+    if (!fp) {
         FreeBuffer(first_buff); /* error?, then cancel*/
         ErrorReq(13);           /* can't open file */
         return;
     }
+
+    for (;;) {
+        filebuffer = filebuffer2 = mybuff.Entry;
+
+        while (filebuffer2 < mybuff.BuffEnd) { /* get size of buffer */
+            if (!*filebuffer2)
+                break;
+            filebuffer2++;
+        }
+        /* save buffer */
+        /* DHH - 24-Oct-2012: ensure lines are terminated with CRLF */
+        long result = WriteOutput(filebuffer, (size_t)1, (size_t)(filebuffer2 - filebuffer), fp);
+        if (result != (filebuffer2 - filebuffer)) { /* write error? */
+            fclose(fp);
+            FreeBuffer(first_buff);
+            ErrorReq(13);
+            return;
+        }
+
+        if (!mybuff.ThisBuff->Next) /* more buffers here? */
+            break;                  /* no, then cancel */
+
+        mybuff.ThisBuff = mybuff.ThisBuff->Next;
+        mybuff.Entry = (UBYTE*)(&mybuff.ThisBuff->Entries[0]);
+        mybuff.BuffEnd = (UBYTE*)mybuff.ThisBuff + (long)sizeof(Buffer_t);
+    }
+
+    fclose(fp);
 
     FreeBuffer(first_buff);
 }
