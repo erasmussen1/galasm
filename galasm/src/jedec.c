@@ -499,10 +499,12 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
         filebuffer = filebuffer2 = mybuff.Entry;
 
         while (filebuffer2 < mybuff.BuffEnd) { /* get size of buffer */
-            if (!*filebuffer2)
+            if (!*filebuffer2) {
                 break;
+            }
             filebuffer2++;
         }
+
         /* save buffer */
         /* DHH - 24-Oct-2012: ensure lines are terminated with CRLF */
         long result = WriteOutput(filebuffer, (size_t)1, (size_t)(filebuffer2 - filebuffer), fp);
@@ -513,8 +515,9 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
             return;
         }
 
-        if (!mybuff.ThisBuff->Next) /* more buffers here? */
-            break;                  /* no, then cancel */
+        if (!mybuff.ThisBuff->Next) {
+            break;
+        }
 
         mybuff.ThisBuff = mybuff.ThisBuff->Next;
         mybuff.Entry = (UBYTE*)(&mybuff.ThisBuff->Entries[0]);

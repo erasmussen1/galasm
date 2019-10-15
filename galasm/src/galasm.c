@@ -107,7 +107,7 @@ Pin_t actPin;
 GAL_OLMC_t OLMC[12];
 
 
-int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
+int GetBaseName(const char* filename, const char* ext, char* newfilename) {
     strcpy(newfilename, filename);
 
     char* base = newfilename;
@@ -129,12 +129,47 @@ int GetBaseName2(const char* filename, const char* ext, char* newfilename) {
     return 0;
 }
 
+static void outputToFiles(const char* file, JedecStruct_t* jedec, Config_t* cfg) {
+    char* jedFilename = strdup(file);
+    int rc = GetBaseName(file, "jed", jedFilename);
+    if (!rc) {
+        WriteJedecFile(jedFilename, jedec, cfg);
+    }
+    free(jedFilename);
+
+    if (cfg->GenFuse) {
+        char* fusFilename = strdup(file);
+        int rc = GetBaseName(file, "fus", fusFilename);
+        if (!rc) {
+            WriteFuseFile(fusFilename, cfg->gal_type);
+        }
+        free(fusFilename);
+    }
+
+    if (cfg->GenPin) {
+        char* pinFilename = strdup(file);
+        int rc = GetBaseName(file, "pin", pinFilename);
+        if (!rc) {
+            WritePinFile(pinFilename, cfg);
+        }
+        free(pinFilename);
+    }
+
+    if (cfg->GenChip) {
+        char* chpFilename = strdup(file);
+        int rc = GetBaseName(file, "chp", chpFilename);
+        if (!rc) {
+            WriteChipFile(chpFilename, cfg);
+        }
+        free(chpFilename);
+    }
+}
+
 /*
  * get OLMC number
  */
 static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
-
-    int n;
+    int n = -1;
     switch (cfg->gal_type) {
         case GAL16V8:
             n = actPin->p_Pin - 12;
@@ -148,13 +183,13 @@ static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
         case GAL20RA10:
             n = actPin->p_Pin - 14;
             break;
+
         default:
-            n = -1;
             break;
     }
+
     return n;
 }
-
 
 /**
  * Only ' ', newline and tab are valid after the GAL's name
@@ -188,7 +223,6 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
             return (-1);
         }
-
         return 0;
     }
 
@@ -201,7 +235,6 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         if ((*(actptr + 9L) != ' ') && (*(actptr + 9L) != 0x0A) && (*(actptr + 9L) != 0x09)) {
             return (-1);
         }
-
         return 0;
     }
 
@@ -214,7 +247,6 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         if ((*(actptr + 8L) != ' ') && (*(actptr + 8L) != 0x0A) && (*(actptr + 8L) != 0x09)) {
             return (-1);
         }
-
         return 0;
     }
 
@@ -363,7 +395,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
             if (m == max_chr) {
                 AsmError(4, 0);
-                return (-1); /* error: too many char. */
+                return (-1);
             }
         }
 
@@ -482,8 +514,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                 if (!modus) {
                     for (n = 0; n < 8; n++) {
-                        /* is there a tristate */
-                        /* OLMC?, then GAL's   */
+                        /* is there a tristate OLMC?, then GAL's */
                         if (OLMC[n].PinType == TRIOUT) {
                             modus = MODE2;
                             setMode(&Jedec, modus);
@@ -1115,7 +1146,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         label1:
             linenum = newline;
-
             oldptr = actptr;
 
             IsPinName(pinnames, cfg->num_of_pins);
@@ -1129,13 +1159,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 }
             }
 
-            if (!actPin.p_Pin) { /* pin name?      */
-                AsmError(11, 0); /* no, then error */
+            if (!actPin.p_Pin) {
+                AsmError(11, 0);
                 return (-1);
             }
 
-            if (actPin.p_Pin == NC_PIN) { /* NC used as pin name? */
-                AsmError(12, 0);          /* yes, then error      */
+            if (actPin.p_Pin == NC_PIN) {
+                AsmError(12, 0);
                 return (-1);
             }
 
@@ -1206,9 +1236,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     return (-1);          /* needs clock definition */
                 }
 
-                if (!OLMC[n].Clock) {                       /* is clock unused? */
-                    l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col; /* then clear */
-                                                            /* the row    */
+                if (!OLMC[n].Clock) {
+                    l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col;
+
                     for (k = l; k < l + cfg->num_of_col; k++) {
                         Jedec.GALLogic[k] = 0;
                     }
@@ -1236,41 +1266,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     }
 
     /* now the JEDEC structure is ready (be happy, it was a hard task) */
-    {
-        char* jedFilename = strdup(file);
-        int rc = GetBaseName2(file, "jed", jedFilename);
-        if (!rc) {
-            WriteJedecFile(jedFilename, &Jedec, cfg);
-        }
-        free(jedFilename);
-
-        if (cfg->GenFuse) {
-            char* fusFilename = strdup(file);
-            int rc = GetBaseName2(file, "fus", fusFilename);
-            if (!rc) {
-                WriteFuseFile(fusFilename, cfg->gal_type);
-            }
-            free(fusFilename);
-        }
-
-        if (cfg->GenPin) {
-            char* pinFilename = strdup(file);
-            int rc = GetBaseName2(file, "pin", pinFilename);
-            if (!rc) {
-                WritePinFile(pinFilename, cfg);
-            }
-            free(pinFilename);
-        }
-
-        if (cfg->GenChip) {
-            char* chpFilename = strdup(file);
-            int rc = GetBaseName2(file, "chp", chpFilename);
-            if (!rc) {
-                WriteChipFile(chpFilename, cfg);
-            }
-            free(chpFilename);
-        }
-    }
+    outputToFiles(file, &Jedec, cfg);
 
     return 0;
 }

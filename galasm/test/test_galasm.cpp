@@ -156,7 +156,7 @@ TEST_F(GalasmFixture, Filenames) {
     char *inFilename = strdup("GAL22V10.pld");
     char *outFilename = strdup("GAL22V10.xxx          ");
 
-    int rc = GetBaseName2(inFilename, "jed", outFilename);
+    int rc = GetBaseName(inFilename, "jed", outFilename);
     EXPECT_TRUE(!rc) ;
 
     EXPECT_EQ("GAL22V10.jed", std::string(outFilename));

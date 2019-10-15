@@ -152,7 +152,7 @@ extern char* AsmErrorArray[];
 /*************************** function declartions ****************************/
 
 int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t* cfg);
-int GetBaseName2(const char* filename, const char *ext, char* newfilename);
+int GetBaseName(const char* filename, const char *ext, char* newfilename);
 
 /* GALasm.c */
 void SetAND(int row, int pinnum, int negation, int gal_type);
