@@ -199,29 +199,6 @@ void FreeBuffer(Buffer_t* buff) {
 }
 
 /**
- * GetGALName()
- *
- * input:   gal type
- *
- * output:  pointer to a string with the gal name
- *
- */
-char* GetGALName(int galtype) {
-    switch (galtype) {
-        case GAL16V8:
-            return ("16V8");
-        case GAL20V8:
-            return ("20V8");
-        case GAL22V10:
-            return ("22V10");
-        case GAL20RA10:
-            return ("20RA10");
-        default:
-            return "UNKNOWN";
-    }
-}
-
-/**
  * errorReq()
  *
  * input:   error number

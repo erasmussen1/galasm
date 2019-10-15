@@ -197,16 +197,18 @@ static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
  */
 static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
 
-    cfg->gal_type = UNKNOWN;
     cfg->num_of_olmcs = 0;
     cfg->num_of_pins = 0;
     cfg->num_of_col = 0;
+    cfg->gal_type = UNKNOWN;
+    strcpy(cfg->name, "UNKNOWN");
 
     if (strncmp((char*)actptr, "GAL16V8", (size_t)7) == 0) {
         cfg->num_of_olmcs = 8;
         cfg->num_of_pins = 20;
         cfg->num_of_col = MAX_FUSE_ADR16 + 1;
         cfg->gal_type = GAL16V8;
+        strcpy(cfg->name, "GAL16V8");
 
         if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
             return (-1);
@@ -219,6 +221,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->num_of_pins = 24;
         cfg->num_of_col = MAX_FUSE_ADR20 + 1;
         cfg->gal_type = GAL20V8;
+        strcpy(cfg->name, "GAL20V8");
 
         if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
             return (-1);
@@ -231,6 +234,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->num_of_pins = 24;
         cfg->num_of_col = MAX_FUSE_ADR20RA10 + 1;
         cfg->gal_type = GAL20RA10;
+        strcpy(cfg->name, "GAL20RA10");
 
         if ((*(actptr + 9L) != ' ') && (*(actptr + 9L) != 0x0A) && (*(actptr + 9L) != 0x09)) {
             return (-1);
@@ -243,6 +247,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->num_of_pins = 24;
         cfg->num_of_col = MAX_FUSE_ADR22V10 + 1;
         cfg->gal_type = GAL22V10;
+        strcpy(cfg->name, "GAL22V10");
 
         if ((*(actptr + 8L) != ' ') && (*(actptr + 8L) != 0x0A) && (*(actptr + 8L) != 0x09)) {
             return (-1);
@@ -314,10 +319,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     }
 
     /* store signature in the */
-    n = m = 0; /* JEDEC structure        */
+    n = m = 0; /* JEDEC structure */
 
-    /* end of signature: after eight */
-    /* characters, CR or TAB         */
+    /* end of signature: after eight characters, CR or TAB         */
     while ((*actptr != 0x0A) && (*actptr != 0x09) && (n < 8)) {
         chr = *actptr;
 
@@ -341,7 +345,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         PinDecNeg[n] = 0;
     }
 
-    /*assembler: pin names in PinNames*/
+    /* assembler: pin names in PinNames */
     pinnames = &PinNames[0][0];
 
     /* set flag 'not assembled' */
@@ -366,8 +370,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
 
         if (!(isalpha(chr) || isdigit(chr) || IsNEG(chr))) {
-            AsmError(5, 0); /* is character a legal */
-            return (-1);    /* one?                 */
+            AsmError(5, 0);
+            return (-1);
         }
 
         k = 0;
@@ -406,11 +410,13 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             if (strcmp((char*)pinnames + l * 10, "NC")) {
                 i = j = 0;
 
-                if (IsNEG(*(pinnames + l * 10))) /* skip negation sign */
+                if (IsNEG(*(pinnames + l * 10))) { /* skip negation sign */
                     i = 1;
+                }
 
-                if (IsNEG(*(pinnames + n * 10)))
+                if (IsNEG(*(pinnames + n * 10))) {
                     j = 1;
+                }
 
                 if (!strcmp((char*)(pinnames + l * 10 + i), (char*)(pinnames + n * 10 + j))) {
                     AsmError(9, 0); /* pin name defined twice */
@@ -448,9 +454,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 return (-1);
             }
         }
+
         /* AR and SP are key words for 22V10 */
-        /* they are not allowed in the pin */
-        /* declaration */
+        /* they are not allowed in the pin declaration */
         if (cfg->gal_type == GAL22V10) {
             if (!strcmp((char*)(pinnames + n * 10), "AR")) {
                 AsmError(18, 0);
@@ -497,7 +503,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     for (pass = 0; pass < 2; pass++) {
         printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
 
-        /* 2nd pass? => make ACW and get the mode for 16V8,20V8 GALs  */
+        /* 2nd pass? => make ACW and get the mode for 16V8, 20V8 GALs  */
         if (pass) {
             modus = 0;
             if (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8) {
@@ -636,7 +642,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         if (pass) {
             printf("GAL %s; Operation mode %d; Security fuse %s\n",
-                   GetGALName(cfg->gal_type),
+                   cfg->name,
                    modus,
                    cfg->JedecSecBit ? "on" : "off");
         }
@@ -962,21 +968,19 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         /* 1st pass */
         if (!pass) {
-            if (((cfg->gal_type == GAL16V8) && /* is this pin an OLMC pin? */
-                 (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
+            if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
-                 (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
-                /* get OLMC number */
                 n = getOLMCnumber(cfg, &actPin);
 
-                if (!OLMC[n].PinType)        /* is OLMC's type already */
-                    OLMC[n].PinType = INPUT; /* defined? no, then use  */
-                                             /* it as input            */
-                OLMC[n].FeedBack = YES;      /* if a OLMC pin is used within an */
-            }                                /* equation, a feedback is needed  */
+                if (!OLMC[n].PinType) {
+                    OLMC[n].PinType = INPUT;
+                }
+
+                OLMC[n].FeedBack = YES;
+            }
         }
 
         /* in pass 2 we have to make the fuse matrix */
@@ -1105,7 +1109,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         return (-1);     /* and 22V10: AR, SP       */
                     }
 
-                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, cfg->gal_type);
+                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, &Jedec, cfg);
                 } else {
                     if (IsOR(prevOp)) { /* OR operation? yes, then */
                         row_offset++;   /* take the next row       */
@@ -1116,7 +1120,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         }
                     }
                     /* set ANDs */
-                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, cfg->gal_type);
+                    SetAND(start_row + row_offset, pin_num, actPin.p_Neg, &Jedec, cfg);
                 }
             }
 
@@ -1283,12 +1287,10 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 **
 ** remarks: sets an AND (=0) in the fuse matrix
 ******************************************************************************/
-
-void SetAND(int row, int pinnum, int negation, int gal_type) {
+void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
     int column = 0;
-    int numofcol = 0;
 
-    switch (gal_type) {
+    switch (cfg->gal_type) {
         case GAL16V8:
             if (modus == MODE1)
                 column = PinToFuse16Mode1[pinnum - 1];
@@ -1296,8 +1298,6 @@ void SetAND(int row, int pinnum, int negation, int gal_type) {
                 column = PinToFuse16Mode2[pinnum - 1];
             if (modus == MODE3)
                 column = PinToFuse16Mode3[pinnum - 1];
-
-            numofcol = MAX_FUSE_ADR16 + 1;
             break;
 
         case GAL20V8:
@@ -1307,8 +1307,6 @@ void SetAND(int row, int pinnum, int negation, int gal_type) {
                 column = PinToFuse20Mode2[pinnum - 1];
             if (modus == MODE3)
                 column = PinToFuse20Mode3[pinnum - 1];
-
-            numofcol = MAX_FUSE_ADR20 + 1;
             break;
 
         case GAL22V10:
@@ -1316,20 +1314,17 @@ void SetAND(int row, int pinnum, int negation, int gal_type) {
 
             /* is it a registered OLMC pin?   */
             /* yes, then correct the negation */
-            if ((pinnum >= 14 && pinnum <= 23) && !Jedec.GALS1[23 - pinnum]) {
+            if ((pinnum >= 14 && pinnum <= 23) && !jedec->GALS1[23 - pinnum]) {
                 negation = negation ? 0 : 1;
             }
-
-            numofcol = MAX_FUSE_ADR22V10 + 1;
             break;
 
         case GAL20RA10:
             column = PinToFuse20RA10[pinnum - 1];
-            numofcol = MAX_FUSE_ADR20RA10 + 1;
             break;
     }
 
-    Jedec.GALLogic[row * numofcol + column + negation] = 0;
+    jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
 }
 
 
@@ -1581,27 +1576,10 @@ void WriteChipFile(char* filename, Config_t *cfg) {
     }
 
     fprintf(fp, "\n\n");
-
     WriteSpaces(fp, 31);
-
-    if (cfg->gal_type == GAL16V8) {
-        fprintf(fp, " GAL16V8\n\n");
-    }
-
-    if (cfg->gal_type == GAL20V8) {
-        fprintf(fp, " GAL20V8\n\n");
-    }
-
-    if (cfg->gal_type == GAL22V10) {
-        fprintf(fp, " GAL22V10\n\n");
-    }
-
-    if (cfg->gal_type == GAL20RA10) {
-        fprintf(fp, "GAL20RA10\n\n");
-    }
+    fprintf(fp, " %s\n\n", cfg->name);
 
     WriteSpaces(fp, 26);
-
     fprintf(fp, "-------\\___/-------\n");
 
     for (int n = 0; n < cfg->num_of_pins / 2; n++) {
@@ -1621,11 +1599,10 @@ void WriteChipFile(char* filename, Config_t *cfg) {
     }
 
     WriteSpaces(fp, 26);
-
     fprintf(fp, "-------------------\n");
 
     if (fclose(fp) == EOF) {
-        ErrorReq(8); /* can't close file */
+        ErrorReq(8);
         return;
     }
 }
@@ -1720,7 +1697,7 @@ void WritePinFile(char* filename, Config_t* cfg) {
     }
 
     if (fclose(fp) == EOF) {
-        ErrorReq(8); /* can't close file */
+        ErrorReq(8);
         return;
     }
 }
@@ -1736,20 +1713,19 @@ void WritePinFile(char* filename, Config_t* cfg) {
 ** remarks: writes a row of an OLMC to the file characterized by the file
 **          handle fp
 ******************************************************************************/
-
 void WriteRow(FILE* fp, int row, int num_of_col) {
-    int col;
-
     fprintf(fp, "\n%3d ", row); /* print row number */
 
-    for (col = 0; col < num_of_col; col++) { /* print fuses of */
-        if (!((col) % 4))                    /* a row          */
+    for (int col = 0; col < num_of_col; col++) { /* print fuses of a row */
+        if (!((col) % 4)) {
             fprintf(fp, " ");
+        }
 
-        if (Jedec.GALLogic[row * num_of_col + col])
+        if (Jedec.GALLogic[row * num_of_col + col]) {
             fprintf(fp, "-");
-        else
+        } else {
             fprintf(fp, "x");
+        }
     }
 }
 
@@ -1799,7 +1775,6 @@ void WriteFuseFile(char* filename, int gal_type) {
     row = 0;
 
     for (olmc = 0; olmc < numofOLMCs; olmc++) {
-
         if (gal_type == GAL22V10 && olmc == 0) { /* AR when 22V10 */
             fprintf(fp, "\n\nAR");
             WriteRow(fp, row, num_of_col);
@@ -1875,7 +1850,6 @@ void WriteSpaces(FILE* fp, int numof) {
 ** remarks: print error messages of the GAL-assembler and free
 **          the memory allocated by the file buffer
 ******************************************************************************/
-
 void AsmError(int errornum, int pinnum) {
     if (!pinnum)
         printf("Error in line %d: ", linenum);

@@ -155,7 +155,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t
 int GetBaseName(const char* filename, const char *ext, char* newfilename);
 
 /* GALasm.c */
-void SetAND(int row, int pinnum, int negation, int gal_type);
+void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg);
 void IsPinName(UBYTE* pinnames, int numofpins);
 int GetNextChar(void);
 int GetNextLine(void);
@@ -179,6 +179,5 @@ int AddString(ActBuffer_t* buff, UBYTE* strnptr);
 void IncPointer(ActBuffer_t* buff);
 void DecPointer(ActBuffer_t* buff);
 void FreeBuffer(Buffer_t* buff);
-char* GetGALName(int galtype);
 void ErrorReq(int errornum);
 

@@ -19,6 +19,7 @@ typedef struct {
     int num_of_olmcs; /* number of OLMCs                 */
     int num_of_pins;  /* number of pins                  */
     int num_of_col;   /* number of col.                  */
+    char name[32];
 } Config_t;
 
 #endif
