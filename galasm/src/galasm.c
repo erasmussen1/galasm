@@ -268,6 +268,12 @@ static void clearOLMC(GAL_OLMC_t* olmc) {
     }
 }
 
+static void initPins(uint8_t* pins) {
+    for (int n = 0; n < 24; n++) {
+        pins[n] = 0;
+    }
+}
+
 /**
  * set unused CLK, ARST and APRST equal 0
  */
@@ -380,16 +386,12 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     }
 
     /*** get name of pins ***/
-
     /* clear flags for negations in the pin declaration */
-    for (n = 0; n < 24; n++) {
-        PinDecNeg[n] = 0;
-    }
+    initPins(PinDecNeg);
 
     /* assembler: pin names in PinNames */
     pinnames = &PinNames[0][0];
 
-    /* set flag 'not assembled' */
     GetNextLine();
 
     for (n = 0; n < cfg->num_of_pins; n++) {
@@ -399,8 +401,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
 
         m = 0;
-
-        chr = *actptr; /* get character */
+        chr = *actptr;
 
         /* is there a negation? */
         if (IsNEG(chr)) {
@@ -424,7 +425,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             k = 1;
-
             actptr++;
 
             if (IsNEG(chr) && (!(isalpha(*actptr) || isdigit(*actptr)))) {
@@ -433,7 +433,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             *(pinnames + n * 10 + m) = chr;
-
             m++;
 
             chr = *actptr;
@@ -443,8 +442,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 return (-1);
             }
         }
-
-        *(pinnames + n * 10 + m) = 0; /* mark end of string */
+        *(pinnames + n * 10 + m) = '\0';
 
         /* pin name twice? */
         for (l = 0; l < n; l++) {
@@ -708,23 +706,23 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (*actptr == '.') {
             actptr++;
 
+            /* no suffix allowed at AR and SP */
             if (cfg->gal_type == GAL22V10 && (actPin.p_Pin == 24 || actPin.p_Pin == 25)) {
-                AsmError(39, 0); /* no suffix allowed at */
-                return (-1);     /* AR and SP */
+                AsmError(39, 0);
+                return (-1);
             }
 
+            /* copy suffix string into suffix array */
             n = 0;
-            while (isalpha(*actptr)) /* copy suffix string into */
-            {                        /* suffix array            */
+            while (isalpha(*actptr)) {
                 if (n < MAX_SUFFIX_SIZE)
                     suffix_strn[n++] = *actptr++;
-                else {               /* string too long, then */
-                    AsmError(13, 0); /* unknown suffix        */
+                else {
+                    AsmError(13, 0);
                     return (-1);
                 }
             }
-
-            suffix_strn[n] = 0; /* mark end of string */
+            suffix_strn[n] = '\0';
 
             if (suffix_strn[0] == 'T')
                 suffix = SUFFIX_T;
@@ -739,7 +737,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             else if (!strcmp(&suffix_strn[0], "APRST"))
                 suffix = SUFFIX_APRST;
             else {
-                AsmError(13, 0); /* unknown suffix */
+                AsmError(13, 0);
                 return (-1);
             }
 
@@ -806,11 +804,11 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                             }
 
                             if (suffix == SUFFIX_T) {
-                                OLMC[n].PinType = TRIOUT; /* tri. output */
+                                OLMC[n].PinType = TRIOUT;
                             }
 
                             if (suffix == SUFFIX_R) {
-                                OLMC[n].PinType = REGOUT; /* reg. output */
+                                OLMC[n].PinType = REGOUT;
                             }
 
                             /* type of output is not defined explicitly  */
@@ -1150,9 +1148,12 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     return (-1);
                 }
             } else {
-                if (suffix == SUFFIX_E || suffix == SUFFIX_CLK || suffix == SUFFIX_ARST ||
+                if (suffix == SUFFIX_E ||
+                    suffix == SUFFIX_CLK ||
+                    suffix == SUFFIX_ARST ||
                     suffix == SUFFIX_APRST ||
-                    (cfg->gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))) {
+                    (cfg->gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))
+                    ) {
 
                     if (IsOR(prevOp)) {  /* max. one product term   */
                         AsmError(29, 0); /* for CLK, ARST, APRST, E */
@@ -1161,8 +1162,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                     SetAND(start_row + row_offset, pin_num, actPin.p_Neg, &Jedec, cfg);
                 } else {
-                    if (IsOR(prevOp)) { /* OR operation? yes, then */
-                        row_offset++;   /* take the next row       */
+                    /* OR operation? yes, then take the next row */
+                    if (IsOR(prevOp)) {
+                        row_offset++;
 
                         if (row_offset == max_row) { /* too many ORs?*/
                             AsmError(30, 0);
@@ -1419,21 +1421,19 @@ void IsPinName(UBYTE* pinnames, int numofpins) {
 ** remarks: This function tests whether actptr points to a AR or SP
 ******************************************************************************/
 void Is_AR_SP(UBYTE* ptr) {
-    int n;
-    UBYTE* oldptr;
-
-    actPin.p_Neg = 0; /* install structure for pin */
+    /* install structure for pin */
+    actPin.p_Neg = 0;
     actPin.p_Pin = 0;
 
-    if (IsNEG(*ptr)) { /* negation? */
+    if (IsNEG(*ptr)) {
         ptr++;
         actPin.p_Neg = 1;
     }
 
-    n = 0; /* get length of pin name */
+    /* get length of pin name */
+    UBYTE* oldptr = ptr;
 
-    oldptr = ptr;
-
+    int n = 0;
     while (isalpha(*ptr) || isdigit(*ptr)) {
         ptr++;
         n++;
@@ -1441,14 +1441,16 @@ void Is_AR_SP(UBYTE* ptr) {
 
     /* assign AR to "OLMC 11" ("pin 24") and */
     /* assign SP to "OLMC 12" ("pin 25")     */
-    if (n) {
-        if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
-            actPin.p_Pin = DUMMY_OLMC11;
-        }
+    if (!n) {
+        return;
+    }
 
-        if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
-            actPin.p_Pin = DUMMY_OLMC12;
-        }
+    if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
+        actPin.p_Pin = DUMMY_OLMC11;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
+        actPin.p_Pin = DUMMY_OLMC12;
     }
 }
 
@@ -1494,6 +1496,8 @@ int GetNextChar(void) {
             return (1);
         }
     }
+
+    return 0;
 }
 
 /**
