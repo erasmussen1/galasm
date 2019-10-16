@@ -87,9 +87,9 @@ int FileChecksum(ActBuffer_t buff) {
 **          structure.
 ******************************************************************************/
 int FuseChecksum(JedecStruct_t* jedec, int galtype) {
-    uint8_t *ptr = jedec->GALLogic - 1L;
-    uint8_t *ptrXOR = jedec->GALXOR;
-    uint8_t *ptrS1 = jedec->GALS1;
+    uint8_t* ptr = jedec->GALLogic - 1L;
+    uint8_t* ptrXOR = jedec->GALXOR;
+    uint8_t* ptrS1 = jedec->GALS1;
 
     int n = 0;
     int checksum = 0;
@@ -213,7 +213,7 @@ static void getChipConfiguration(Config_t* cfg, int* MaxFuseAdr, int* RowSize, i
 **
 ** remarks: generates the JEDEC file in a ram buffer
 ******************************************************************************/
-int MakeJedecBuff(JedecStruct_t* jedec, Config_t *cfg, ActBuffer_t buff) {
+int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
     UBYTE mystrng[255];
     ActBuffer_t buff2;
     int n, m, bitnum, bitnum2, flag;

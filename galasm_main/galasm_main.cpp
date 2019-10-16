@@ -28,7 +28,9 @@ struct Options {
 static void printVersion(void) {
     std::cout << "GALasm2, Portable GAL Assembler\n"
                  "Original sources Copyright (c) 1991-96 Christian Habermann\n"
-                 "  Version " Package_VERSION_MAJOR "." Package_VERSION_MINOR "." Package_VERSION_PATCH "\n"
+                 "  Version " Package_VERSION_MAJOR "." Package_VERSION_MINOR
+                 "." Package_VERSION_PATCH
+                 "\n"
                  "  Branch  " GIT_BRANCH
                  "\n"
                  "  Build date: " __DATE__ " " __TIME__
@@ -95,7 +97,7 @@ int main(int argc, char* argv[]) {
     parseCmdline(argc, argv, opts);
 
     if (opts.showOptions) {
-       opts.printOptions();
+        opts.printOptions();
     }
 
     if (opts.showVersion) {
@@ -121,4 +123,3 @@ int main(int argc, char* argv[]) {
     std::cout << "Assembling successfully completed.\n";
     return 0;
 }
-

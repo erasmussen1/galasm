@@ -21,8 +21,8 @@ int assemblePldFile(const char* filename,
 
     int fileSize = FileSize(filename);
 
-    unsigned char* buffer = (unsigned char* )malloc(fileSize);
-    if (!buffer ) {
+    unsigned char* buffer = (unsigned char*)malloc(fileSize);
+    if (!buffer) {
         ErrorReq(2);
         return -1;
     }
@@ -57,4 +57,3 @@ int assemblePldMemory(const char* filename,
 
     return AssemblePldFile(filename, fbuff2, size2, &cfg);
 }
-

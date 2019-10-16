@@ -169,7 +169,7 @@ void DecPointer(ActBuffer_t* buff) {
     /* start of buffer reached? */
     if (buff->Entry < &buff->ThisBuff->Entries[0]) {
         buff->ThisBuff = buff->ThisBuff->Prev;
-        buff->BuffEnd = (UBYTE*)buff->ThisBuff + (long)sizeof( Buffer_t);
+        buff->BuffEnd = (UBYTE*)buff->ThisBuff + (long)sizeof(Buffer_t);
         buff->Entry = (UBYTE*)((buff->BuffEnd) - 1L);
     }
 }

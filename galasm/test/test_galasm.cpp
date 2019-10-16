@@ -103,8 +103,8 @@ TEST_F(GalasmFixture, GAL20RA10_PLD) {
 TEST_F(GalasmFixture, GAL22V10_PLD) {
     N = fileSize("GAL22V10.pld");
 
-    std::vector<unsigned char> v(N+10, 0x00);
-    res  = readFileToBuffer("GAL22V10.pld", N, v.data());
+    std::vector<unsigned char> v(N + 10, 0x00);
+    res = readFileToBuffer("GAL22V10.pld", N, v.data());
     EXPECT_TRUE(res);
 
     rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
@@ -130,7 +130,7 @@ TEST_F(GalasmFixture, Gatter_PLD) {
     N = fileSize("Gatter.pld");
 
     std::vector<unsigned char> v(N, 0x00);
-    res  = readFileToBuffer("Gatter.pld", N, v.data());
+    res = readFileToBuffer("Gatter.pld", N, v.data());
     EXPECT_TRUE(res);
 
     rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
@@ -153,16 +153,14 @@ TEST_F(GalasmFixture, Tristate_PLD) {
 }
 
 TEST_F(GalasmFixture, Filenames) {
-    char *inFilename = strdup("GAL22V10.pld");
-    char *outFilename = strdup("GAL22V10.xxx          ");
+    char* inFilename = strdup("GAL22V10.pld");
+    char* outFilename = strdup("GAL22V10.xxx          ");
 
     int rc = GetBaseName(inFilename, "jed", outFilename);
-    EXPECT_TRUE(!rc) ;
+    EXPECT_TRUE(!rc);
 
     EXPECT_EQ("GAL22V10.jed", std::string(outFilename));
 
     free(inFilename);
     free(outFilename);
 }
-
-

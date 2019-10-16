@@ -7,7 +7,6 @@
 #include "galasm.h"
 
 
-
 #define SUFFIX_NON 0 /* possible suffixes */
 #define SUFFIX_T 1
 #define SUFFIX_R 2
@@ -165,7 +164,7 @@ static void outputToFiles(const char* file, JedecStruct_t* jedec, Config_t* cfg)
     }
 }
 
-/*
+/**
  * get OLMC number
  */
 static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
@@ -191,6 +190,14 @@ static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
     return n;
 }
 
+static int isEndOfChipNameBlank(unsigned char* ch, long offset) {
+    if ((*(ch + offset) != ' ') && (*(ch + offset) != '\n') && (*(ch + offset) != '\t')) {
+        return (-1);
+    }
+
+    return 0;
+}
+
 /**
  * Only ' ', newline and tab are valid after the GAL's name
  * Any other char will produce an error
@@ -210,10 +217,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->gal_type = GAL16V8;
         strcpy(cfg->name, "GAL16V8");
 
-        if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
-            return (-1);
-        }
-        return 0;
+        return isEndOfChipNameBlank(actptr, strlen(cfg->name));
     }
 
     if (strncmp((char*)actptr, "GAL20V8", (size_t)7) == 0) {
@@ -223,10 +227,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->gal_type = GAL20V8;
         strcpy(cfg->name, "GAL20V8");
 
-        if ((*(actptr + 7L) != ' ') && (*(actptr + 7L) != 0x0A) && (*(actptr + 7L) != 0x09)) {
-            return (-1);
-        }
-        return 0;
+        return isEndOfChipNameBlank(actptr, strlen(cfg->name));
     }
 
     if (strncmp((char*)actptr, "GAL20RA10", (size_t)9) == 0) {
@@ -236,10 +237,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->gal_type = GAL20RA10;
         strcpy(cfg->name, "GAL20RA10");
 
-        if ((*(actptr + 9L) != ' ') && (*(actptr + 9L) != 0x0A) && (*(actptr + 9L) != 0x09)) {
-            return (-1);
-        }
-        return 0;
+        return isEndOfChipNameBlank(actptr, strlen(cfg->name));
     }
 
     if (strncmp((char*)actptr, "GAL22V10", (size_t)8) == 0) {
@@ -249,10 +247,7 @@ static int getGalTypeFromBuffer(unsigned char* actptr, Config_t* cfg) {
         cfg->gal_type = GAL22V10;
         strcpy(cfg->name, "GAL22V10");
 
-        if ((*(actptr + 8L) != ' ') && (*(actptr + 8L) != 0x0A) && (*(actptr + 8L) != 0x09)) {
-            return (-1);
-        }
-        return 0;
+        return isEndOfChipNameBlank(actptr, strlen(cfg->name));
     }
 
     return -1;
@@ -271,6 +266,52 @@ static void clearOLMC(GAL_OLMC_t* olmc) {
         olmc[n].APRST = 0;
         olmc[n].FeedBack = 0;
     }
+}
+
+/**
+ * set unused CLK, ARST and APRST equal 0
+ */
+static int setNotUsedPins(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t* cfg) {
+
+    for (int n = 0; n < cfg->num_of_olmcs; n++) {
+        if (olmc[n].PinType == NOTUSED) {
+            continue;
+        }
+
+        /* register output needs clock definition */
+        if (olmc[n].PinType == REGOUT && !olmc[n].Clock) {
+            AsmError(41, n + 14);
+            return (-1);
+        }
+
+        if (!olmc[n].Clock) {
+            int l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col;
+
+            for (int k = l; k < l + cfg->num_of_col; k++) {
+                jedec->GALLogic[k] = 0;
+            }
+        }
+
+        if (olmc[n].PinType == REGOUT) {
+            if (!olmc[n].ARST) {
+                int l = (ToOLMC20RA10[n] + 2) * cfg->num_of_col;
+
+                for (int k = l; k < l + cfg->num_of_col; k++) {
+                    jedec->GALLogic[k] = 0;
+                }
+            }
+
+            if (!olmc[n].APRST) {
+                int l = (ToOLMC20RA10[n] + 3) * cfg->num_of_col;
+
+                for (int k = l; k < l + cfg->num_of_col; k++) {
+                    jedec->GALLogic[k] = 0;
+                }
+            }
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -322,15 +363,15 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     n = m = 0; /* JEDEC structure */
 
     /* end of signature: after eight characters, CR or TAB         */
-    while ((*actptr != 0x0A) && (*actptr != 0x09) && (n < 8)) {
+    while ((*actptr != '\n') && (*actptr != '\t') && (n < 8)) {
         chr = *actptr;
 
         for (m = 0; m < 8; m++) {
             Jedec.GALSig[n * 8 + m] = (chr >> (7 - m)) & 0x1;
         }
 
-        actptr++; /* increment pointer and */
-        n++;      /* character-counter     */
+        actptr++;
+        n++;
 
         if (actptr > buffend) {
             AsmError(2, 0);
@@ -728,25 +769,26 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
         }
 
-        actOLMC = (int)actPin.p_Pin; /* save offset of OLMC */
-
-        if (cfg->gal_type == GAL16V8)
+        /* save offset of OLMC */
+        actOLMC = (int)actPin.p_Pin;
+        if (cfg->gal_type == GAL16V8) {
             actOLMC -= 12;
-        else if (cfg->gal_type == GAL20V8)
+        } else if (cfg->gal_type == GAL20V8) {
             actOLMC -= 15;
-        else
+        } else {
             actOLMC -= 14;
+        }
 
-        row_offset = 0; /* offset for OR at OLMC*/
-        prevOp = 0;     /* previous operator */
+        /* offset for OR at OLMC previous operator */
+        row_offset = 0;
+        prevOp = 0;
 
         if (!pass) {
             /* is pin a OLMC pin? */
-            if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
-                ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
-                 (actPin.p_Pin <= DUMMY_OLMC12)) ||
-                ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
+            if (((actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
+                ((actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
+                ((actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 /* get OLMC number */
                 n = getOLMCnumber(cfg, &actPin);
@@ -756,70 +798,76 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     case SUFFIX_T:
                     case SUFFIX_NON:
                         if (!OLMC[n].PinType || OLMC[n].PinType == INPUT) {
-
-                            if (actPin.p_Neg) /* get pin's activation */
+                            /* get pin's activation */
+                            if (actPin.p_Neg) {
                                 OLMC[n].Active = ACTIVE_LOW;
-                            else
-                                OLMC[n].Active = ACTIVE_HIGH;
-
-                            if (suffix == SUFFIX_T)
-                                OLMC[n].PinType = TRIOUT; /* tri. output */
-
-                            if (suffix == SUFFIX_R)
-                                OLMC[n].PinType = REGOUT; /* reg. output */
-
-                            if (suffix == SUFFIX_NON)          /* type of output is */
-                                OLMC[n].PinType = COM_TRI_OUT; /* not defined */
-                                                               /* explicitly  */
-                        } else {
-                            if (cfg->gal_type == GAL22V10 && (n == 10 || n == 11)) {
-                                AsmError(40, 0); /* AR or SP is defined */
-                                return (-1);     /* twice               */
                             } else {
-                                AsmError(16, 0); /* pin is defined twice as */
-                                return (-1);     /* output                  */
+                                OLMC[n].Active = ACTIVE_HIGH;
+                            }
+
+                            if (suffix == SUFFIX_T) {
+                                OLMC[n].PinType = TRIOUT; /* tri. output */
+                            }
+
+                            if (suffix == SUFFIX_R) {
+                                OLMC[n].PinType = REGOUT; /* reg. output */
+                            }
+
+                            /* type of output is not defined explicitly  */
+                            if (suffix == SUFFIX_NON) {
+                                OLMC[n].PinType = COM_TRI_OUT;
+                            }
+                        } else {
+                            /* AR or SP is defined twice */
+                            if (cfg->gal_type == GAL22V10 && (n == 10 || n == 11)) {
+                                AsmError(40, 0);
+                                return (-1);
+                            } else {
+                                /* pin is defined twice as output */
+                                AsmError(16, 0);
+                                return (-1);
                             }
                         }
                         break;
 
                     case SUFFIX_E:
-                        if (actPin.p_Neg) /* negation of the trisate */
-                        {                 /* control is not allowed */
+                        /* negation of the trisate control is not allowed */
+                        if (actPin.p_Neg) {
                             AsmError(19, 0);
                             return (-1);
                         }
 
-                        if (OLMC[n].TriCon) /* tri. control twice? */
-                        {                   /* yes, then error */
+                        /* tri. control twice? yes, then error */
+                        if (OLMC[n].TriCon) {
                             AsmError(22, 0);
                             return (-1);
                         }
 
-                        OLMC[n].TriCon = TRICON; /* set the flag that there is */
-                                                 /* a tri. control equation    */
+                        /* set the flag that there is a tri. control equation */
+                        OLMC[n].TriCon = TRICON;
 
+                        /* the sequence must be output followed by the tri. control */
                         if (!OLMC[n].PinType || OLMC[n].PinType == INPUT) {
-                            AsmError(17, 0); /* the sequence must be output  */
-                            return (-1);     /* followed by the tri. control */
+                            AsmError(17, 0);
+                            return (-1);
                         }
 
-
+                        /* GAL16V8/20V8: tristate control for reg. output is not allowed */
                         if (OLMC[n].PinType == REGOUT &&
                             (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8)) {
-                            AsmError(23, 0); /* GAL16V8/20V8: tristate control */
-                            return (-1);     /* for reg. output is not allowed */
+                            AsmError(23, 0);
+                            return (-1);
                         }
 
-
-                        if (OLMC[n].PinType == COM_TRI_OUT) { /* no tristate .T? */
-                            AsmError(24, 0);                  /* then error      */
+                        /* no tristate .T? then error  */
+                        if (OLMC[n].PinType == COM_TRI_OUT) {
+                            AsmError(24, 0);
                             return (-1);
                         }
                         break;
 
                     case SUFFIX_CLK:
-                        if (actPin.p_Neg) /* negation of the .CLK   */
-                        {                 /* control is not allowed */
+                        if (actPin.p_Neg) { /* negation of the .CLK control is not allowed */
                             AsmError(19, 0);
                             return (-1);
                         }
@@ -933,8 +981,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         IsPinName(pinnames, cfg->num_of_pins);
 
-        if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) { /* AR and SP is not allowed */
-            Is_AR_SP(oldptr);                             /* in terms of an equation  */
+        /* AR and SP is not allowed in terms of an equation */
+        if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) {
+            Is_AR_SP(oldptr);
 
             if (actPin.p_Pin) {
                 AsmError(31, 0);
@@ -970,7 +1019,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (!pass) {
             if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
+                 (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 n = getOLMCnumber(cfg, &actPin);
@@ -1206,7 +1256,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             l = l * cfg->num_of_col;
-
             m = l + i * cfg->num_of_col;
 
             for (k = l; k < m; k++) {
@@ -1230,46 +1279,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
     }
 
-    /* set unused CLK, ARST and APRST equal 0    */
     if (cfg->gal_type == GAL20RA10) {
-        for (n = 0; n < cfg->num_of_olmcs; n++) {
-            /* is OLMC used? */
-            if (OLMC[n].PinType != NOTUSED) {
-                if (OLMC[n].PinType == REGOUT && !OLMC[n].Clock) {
-                    AsmError(41, n + 14); /* register output        */
-                    return (-1);          /* needs clock definition */
-                }
-
-                if (!OLMC[n].Clock) {
-                    l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col;
-
-                    for (k = l; k < l + cfg->num_of_col; k++) {
-                        Jedec.GALLogic[k] = 0;
-                    }
-                }
-
-                if (OLMC[n].PinType == REGOUT) {
-                    if (!OLMC[n].ARST) {
-                        l = (ToOLMC20RA10[n] + 2) * cfg->num_of_col;
-
-                        for (k = l; k < l + cfg->num_of_col; k++) {
-                            Jedec.GALLogic[k] = 0;
-                        }
-                    }
-
-                    if (!OLMC[n].APRST) { /* is APRST unused? */
-                        l = (ToOLMC20RA10[n] + 3) * cfg->num_of_col;
-
-                        for (k = l; k < l + cfg->num_of_col; k++) {
-                            Jedec.GALLogic[k] = 0;
-                        }
-                    }
-                }
-            }
+        int rc = setNotUsedPins(OLMC, &Jedec, cfg);
+        if (rc) {
+            return -1;
         }
     }
 
-    /* now the JEDEC structure is ready (be happy, it was a hard task) */
+    /* Now the JEDEC structure is ready */
     outputToFiles(file, &Jedec, cfg);
 
     return 0;
@@ -1448,13 +1465,13 @@ void Is_AR_SP(UBYTE* ptr) {
 int GetNextChar(void) {
     for (;;) {
         switch (*actptr) {
-            case 0x0A: /* LineFeed */
+            case '\n': /* LineFeed */
                 actptr++;
                 linenum++;
                 break;
 
             case ' ':  /* space */
-            case 0x09: /* TAB   */
+            case '\t': /* TAB   */
                 actptr++;
                 break;
 
@@ -1479,22 +1496,25 @@ int GetNextChar(void) {
     }
 }
 
-/******************************************************************************
-** GetNextLine()
-*******************************************************************************
-** input:   none
-**
-** output:  0: line found, actptr points to this line
-**          1: end of file reached
-**
-** remarks: gets pointer to next line
-******************************************************************************/
+/**
+ * GetNextLine()
+ *
+ * input:
+ *   none
+ *
+ * output:
+ *   0: line found, actptr points to this line
+ *   1: end of file reached
+ *
+ * remarks:
+ *   gets pointer to next line
+ */
 int GetNextLine(void) {
-    for (;;) {
-        if (*actptr == 0x0A) {
+    while (1) {
+        if (*actptr == '\n') {
             actptr++;
             linenum++;
-            return (0);
+            break;
         }
 
         if (actptr > buffend) {
@@ -1503,6 +1523,8 @@ int GetNextLine(void) {
 
         actptr++;
     }
+
+    return 0;
 }
 
 /******************************************************************************
@@ -1569,7 +1591,7 @@ int IsNEG(char chr) {
 **
 ** remarks: make chip file
 ******************************************************************************/
-void WriteChipFile(char* filename, Config_t *cfg) {
+void WriteChipFile(char* filename, Config_t* cfg) {
     FILE* fp = fopen(filename, (char*)"w");
     if (!fp) {
         return;
@@ -1781,10 +1803,12 @@ void WriteFuseFile(char* filename, int gal_type) {
             row++;
         }
 
-        if (gal_type == GAL22V10)            /* get number of rows */
-            numofrows = OLMCSize22V10[olmc]; /* of an OLMC         */
-        else
+        /* get number of rows of an OLMC */
+        if (gal_type == GAL22V10) {
+            numofrows = OLMCSize22V10[olmc];
+        } else {
             numofrows = 8;
+        }
 
         fprintf(fp, "\n\nPin %2d = ", pin); /* print pin */
 
