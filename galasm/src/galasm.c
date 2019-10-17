@@ -264,7 +264,7 @@ static void clearOLMC(GAL_OLMC_t* olmc) {
         olmc[n].Clock = 0;
         olmc[n].ARST = 0;
         olmc[n].APRST = 0;
-        olmc[n].FeedBack = 0;
+        olmc[n].FeedBack = NO;
     }
 }
 
@@ -275,6 +275,10 @@ static void initPins(uint8_t* pins) {
 }
 
 static void initPinNames(Config_t* cfg) {
+    for (int i = 0; i < 32; i++) {
+        cfg->name[i] = '\0';
+    }
+
     for (int i = 0; i < 24; i++) {
         for (int j = 0; j < 10; ++j) {
             cfg->PinNames[i][j] = '\0';
@@ -283,12 +287,14 @@ static void initPinNames(Config_t* cfg) {
     }
 }
 
+#if 0
 static void printPinNames(FILE* fp, Config_t* cfg) {
     fprintf(fp, "Device: %s\n", cfg->name);
     for (int i = 0; i < cfg->num_of_pins; i++) {
         fprintf(fp, "%d %s\n", i, cfg->PinNames[i]);
     }
 }
+#endif
 
 /**
  * set unused CLK, ARST and APRST equal 0
@@ -436,6 +442,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     buffend = fbuff + fsize;
     linenum = 1;
 
+    initPinNames(cfg);
+
     initJedec(&Jedec);
 
     clearOLMC(OLMC);
@@ -476,8 +484,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     /*** get name of pins ***/
     /* clear flags for negations in the pin declaration */
     initPins(PinDecNeg);
-
-    initPinNames(cfg);
 
     /* assembler: pin names in PinNames */
     pinnames = &cfg->PinNames[0][0];
@@ -599,7 +605,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
     }
 
-    // printPinNames(stdout, cfg); // For debugging
+    // printPinNames(stdout, cfg);
 
     /*
      * Boolean Equations evaluate:
