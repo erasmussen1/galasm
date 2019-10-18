@@ -423,7 +423,8 @@ static int setFuseMatrixOfOlmc(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t*
  *
  * remarks: This function does assemble a *.pld file.
  */
-int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t* cfg) {
+int AssemblePldFile(
+    const char* file, unsigned char* fbuff, int fsize, Config_t* cfg, bool verbose) {
     UBYTE chr;
     UBYTE *bool_start, *oldptr;
     char prevOp;
@@ -631,7 +632,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     /* this is a two-pass-assembler */
     for (pass = 0; pass < 2; pass++) {
-        printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
+        if (verbose) {
+            printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
+        }
 
         /* 2nd pass? => make ACW and get the mode for 16V8, 20V8 GALs  */
         if (pass) {
@@ -767,7 +770,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
         }
 
-        if (pass) {
+        if (pass && verbose) {
             printf("GAL %s; Operation mode %d; Security fuse %s\n",
                    cfg->name,
                    modus,

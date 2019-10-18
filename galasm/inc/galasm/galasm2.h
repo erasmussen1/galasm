@@ -1,6 +1,8 @@
 #ifndef GALASM_H
 #define GALASM_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,7 +17,8 @@ int assemblePldMemory(const char* filename,
                       int GenChip,
                       int GenPin,
                       int JedecSecBit,
-                      int JedecFuseChk);
+                      int JedecFuseChk,
+                      bool verbose);
 
 
 #ifdef __cplusplus

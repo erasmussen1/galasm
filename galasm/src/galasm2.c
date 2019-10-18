@@ -34,7 +34,9 @@ int assemblePldFile(const char* filename,
         return -1;
     }
 
-    int rc = AssemblePldFile(filename, buffer, fileSize, &cfg);
+    bool verbose = true;
+
+    int rc = AssemblePldFile(filename, buffer, fileSize, &cfg, verbose);
     free(buffer);
 
     return rc;
@@ -47,7 +49,8 @@ int assemblePldMemory(const char* filename,
                       int GenChip,
                       int GenPin,
                       int JedecSecBit,
-                      int JedecFuseChk) {
+                      int JedecFuseChk,
+                      bool verbose) {
     Config_t cfg;
     cfg.GenFuse = GenFuse;
     cfg.GenChip = GenChip;
@@ -55,5 +58,5 @@ int assemblePldMemory(const char* filename,
     cfg.JedecSecBit = JedecSecBit;
     cfg.JedecFuseChk = JedecFuseChk;
 
-    return AssemblePldFile(filename, fbuff2, size2, &cfg);
+    return AssemblePldFile(filename, fbuff2, size2, &cfg, verbose);
 }

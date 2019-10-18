@@ -94,7 +94,7 @@ TEST_F(GalasmFixture, GAL20RA10_PLD) {
     std::vector<unsigned char> v(N, 0x00);
     res = readFileToBuffer("GAL20RA10.pld", N, v.data());
 
-    rc = assemblePldMemory("X20RA10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("X20RA10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "X20RA10_out.jed"));
@@ -107,7 +107,7 @@ TEST_F(GalasmFixture, GAL22V10_PLD) {
     res = readFileToBuffer("GAL22V10.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "GAL22V10_out.jed"));
@@ -120,7 +120,7 @@ TEST_F(GalasmFixture, GenerateCounter_PLD) {
     res = readFileToBuffer("Counter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
@@ -133,7 +133,7 @@ TEST_F(GalasmFixture, Gatter_PLD) {
     res = readFileToBuffer("Gatter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Gatter.jed", "Gatter_out.jed"));
@@ -146,7 +146,7 @@ TEST_F(GalasmFixture, Tristate_PLD) {
     res = readFileToBuffer("Tristate.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Tristate_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0);
+    rc = assemblePldMemory("Tristate_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Tristate.jed", "Tristate_out.jed"));
