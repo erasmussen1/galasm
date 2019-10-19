@@ -413,6 +413,72 @@ static int setFuseMatrixOfOlmc(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t*
     return 0;
 }
 
+static void getRowOffset(Config_t* cfg,
+                         GAL_OLMC_t* olmc,
+                         const int actOLMC,
+                         const int modus,
+                         const int suffix,
+                         int* rowOffset) {
+    return;
+
+    int row_offset = 0;
+
+    switch (cfg->gal_type) {
+        case GAL16V8:
+        case GAL20V8:
+            if (suffix == SUFFIX_E) /* when tristate control use */
+                row_offset = 0;     /* first row (=> offset = 0) */
+            else if (!row_offset)
+                if (modus != MODE1 && olmc[actOLMC].PinType != REGOUT)
+                    row_offset = 1; /* then init. row-offset */
+            break;
+
+        case GAL22V10:
+            /* enable is the first row of the OLMC */
+            if (suffix == SUFFIX_E)
+                row_offset = 0;
+            else {
+                if (actOLMC == 10 || actOLMC == 11)
+                    row_offset = 0;   /* AR, SP?, then no offset */
+                else if (!row_offset) /* output starts at the     */
+                    row_offset = 1;   /* second row => offset = 1 */
+            }
+            break;
+
+        case GAL20RA10:
+            switch (suffix) {
+                case SUFFIX_E:
+                    /* enable is the first row of the OLMC */
+                    row_offset = 0;
+                    break;
+
+                case SUFFIX_CLK:
+                    /* Clock is the second row of the OLMC */
+                    row_offset = 1;
+                    break;
+
+                case SUFFIX_ARST:
+                    /* AReset is the third row of the OLMC */
+                    row_offset = 2;
+                    break;
+
+                case SUFFIX_APRST:
+                    /* APreset is the fourth row of the OLMC */
+                    row_offset = 3;
+                    break;
+
+                default:
+                    /* output equation starts at the fifth row */
+                    if (row_offset <= 3)
+                        row_offset = 4;
+            }
+            break;
+    }
+
+    *rowOffset = row_offset;
+}
+
+
 /**
  * int AssemblePldFile(char *file)
  *
@@ -1121,6 +1187,8 @@ int AssemblePldFile(
         /* in pass 2 we have to make the fuse matrix */
         if (pass) {
             /* get row offset */
+            getRowOffset(cfg, OLMC, actOLMC, modus, suffix, &row_offset);
+
             switch (cfg->gal_type) {
                 case GAL16V8:
                 case GAL20V8:
