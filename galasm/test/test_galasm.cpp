@@ -101,6 +101,22 @@ TEST_F(GalasmFixture, Filenames) {
     free(outFilename);
 }
 
+TEST_F(GalasmFixture, GenerateCounter_PLD) {
+    N = fileSize("Counter.pld");
+
+    std::vector<unsigned char> v(N, 0x00);
+    res = readFileToBuffer("Counter.pld", N, v.data());
+    EXPECT_TRUE(res);
+
+    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
+    EXPECT_TRUE(!rc);
+
+    EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("Counter.chp", "Counter_out.chp"));
+    EXPECT_TRUE(compareTwoFiles("Counter.fus", "Counter_out.fus"));
+    EXPECT_TRUE(compareTwoFiles("Counter.pin", "Counter_out.pin"));
+}
+
 TEST_F(GalasmFixture, GAL20RA10_PLD) {
     N = fileSize("GAL20RA10.pld");
 
@@ -112,7 +128,7 @@ TEST_F(GalasmFixture, GAL20RA10_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "GAL20RA10_out.jed"));
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.chp", "GAL20RA10_out.chp"));
-    // EXPECT_TRUE(compareTwoFiles("GAL20RA10.fus", "GAL20RA10_out.fus"));
+    EXPECT_TRUE(compareTwoFiles("GAL20RA10.fus", "GAL20RA10_out.fus"));
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.pin", "GAL20RA10_out.pin"));
 }
 
@@ -128,24 +144,8 @@ TEST_F(GalasmFixture, GAL22V10_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "GAL22V10_out.jed"));
     EXPECT_TRUE(compareTwoFiles("GAL22V10.chp", "GAL22V10_out.chp"));
-    // EXPECT_TRUE(compareTwoFiles("GAL22V10.fus", "GAL22V10_out.fus"));
+    EXPECT_TRUE(compareTwoFiles("GAL22V10.fus", "GAL22V10_out.fus"));
     EXPECT_TRUE(compareTwoFiles("GAL22V10.pin", "GAL22V10_out.pin"));
-}
-
-TEST_F(GalasmFixture, GenerateCounter_PLD) {
-    N = fileSize("Counter.pld");
-
-    std::vector<unsigned char> v(N, 0x00);
-    res = readFileToBuffer("Counter.pld", N, v.data());
-    EXPECT_TRUE(res);
-
-    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
-    EXPECT_TRUE(!rc);
-
-    EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
-    EXPECT_TRUE(compareTwoFiles("Counter.chp", "Counter_out.chp"));
-    // EXPECT_TRUE(compareTwoFiles("Counter.fus", "Counter_out.fus"));
-    EXPECT_TRUE(compareTwoFiles("Counter.pin", "Counter_out.pin"));
 }
 
 TEST_F(GalasmFixture, Gatter_PLD) {
@@ -160,7 +160,7 @@ TEST_F(GalasmFixture, Gatter_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("Gatter.jed", "Gatter_out.jed"));
     EXPECT_TRUE(compareTwoFiles("Gatter.chp", "Gatter_out.chp"));
-    // EXPECT_TRUE(compareTwoFiles("Gatter.fus", "Gatter_out.fus"));
+    EXPECT_TRUE(compareTwoFiles("Gatter.fus", "Gatter_out.fus"));
     EXPECT_TRUE(compareTwoFiles("Gatter.pin", "Gatter_out.pin"));
 }
 
@@ -176,6 +176,6 @@ TEST_F(GalasmFixture, Tristate_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("Tristate.jed", "Tristate_out.jed"));
     EXPECT_TRUE(compareTwoFiles("Tristate.chp", "Tristate_out.chp"));
-    // EXPECT_TRUE(compareTwoFiles("Tristate.fus", "Tristate_out.fus"));
+    EXPECT_TRUE(compareTwoFiles("Tristate.fus", "Tristate_out.fus"));
     EXPECT_TRUE(compareTwoFiles("Tristate.pin", "Tristate_out.pin"));
 }
