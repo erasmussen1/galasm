@@ -418,66 +418,52 @@ static void getRowOffset(Config_t* cfg,
                          const int actOLMC,
                          const int modus,
                          const int suffix,
-                         int* rowOffset) {
-    return;
-
-    int row_offset = 0;
-
+                         int* row_offset) {
     switch (cfg->gal_type) {
         case GAL16V8:
         case GAL20V8:
             if (suffix == SUFFIX_E) /* when tristate control use */
-                row_offset = 0;     /* first row (=> offset = 0) */
-            else if (!row_offset)
+                *row_offset = 0;    /* first row (=> offset = 0) */
+            else if (!*row_offset)  /*is offset of rows still equal 0?*/
                 if (modus != MODE1 && olmc[actOLMC].PinType != REGOUT)
-                    row_offset = 1; /* then init. row-offset */
+                    *row_offset = 1; /* then init. row-offset */
             break;
 
         case GAL22V10:
-            /* enable is the first row of the OLMC */
-            if (suffix == SUFFIX_E)
-                row_offset = 0;
+            if (suffix == SUFFIX_E) /* enable is the first row of the OLMC */
+                *row_offset = 0;
             else {
                 if (actOLMC == 10 || actOLMC == 11)
-                    row_offset = 0;   /* AR, SP?, then no offset */
-                else if (!row_offset) /* output starts at the     */
-                    row_offset = 1;   /* second row => offset = 1 */
+                    *row_offset = 0;   /* AR, SP?, then no offset */
+                else if (!*row_offset) /* output starts at the     */
+                    *row_offset = 1;   /* second row => offset = 1 */
             }
             break;
 
         case GAL20RA10:
             switch (suffix) {
-                case SUFFIX_E:
-                    /* enable is the first row of the OLMC */
-                    row_offset = 0;
+                case SUFFIX_E: /* enable is the first row of the OLMC */
+                    *row_offset = 0;
                     break;
 
-                case SUFFIX_CLK:
-                    /* Clock is the second row of the OLMC */
-                    row_offset = 1;
+                case SUFFIX_CLK: /* Clock is the second row of the OLMC */
+                    *row_offset = 1;
                     break;
 
-                case SUFFIX_ARST:
-                    /* AReset is the third row of the OLMC */
-                    row_offset = 2;
+                case SUFFIX_ARST: /* AReset is the third row of the OLMC */
+                    *row_offset = 2;
                     break;
 
-                case SUFFIX_APRST:
-                    /* APreset is the fourth row of the OLMC */
-                    row_offset = 3;
+                case SUFFIX_APRST: /* APreset is the fourth row of the OLMC  */
+                    *row_offset = 3;
                     break;
 
-                default:
-                    /* output equation starts at the fifth row */
-                    if (row_offset <= 3)
-                        row_offset = 4;
+                default: /* output equation starts at the fifth row */
+                    if (*row_offset <= 3)
+                        *row_offset = 4;
             }
-            break;
     }
-
-    *rowOffset = row_offset;
 }
-
 
 /**
  * int AssemblePldFile(char *file)
@@ -1188,52 +1174,6 @@ int AssemblePldFile(
         if (pass) {
             /* get row offset */
             getRowOffset(cfg, OLMC, actOLMC, modus, suffix, &row_offset);
-
-            switch (cfg->gal_type) {
-                case GAL16V8:
-                case GAL20V8:
-                    if (suffix == SUFFIX_E) /* when tristate control use */
-                        row_offset = 0;     /* first row (=> offset = 0) */
-                    else if (!row_offset)   /*is offset of rows still equal 0?*/
-                        if (modus != MODE1 && OLMC[actOLMC].PinType != REGOUT)
-                            row_offset = 1; /* then init. row-offset */
-                    break;
-
-                case GAL22V10:
-                    if (suffix == SUFFIX_E) /* enable is the first row */
-                        row_offset = 0;     /* of the OLMC             */
-                    else {
-                        if (actOLMC == 10 || actOLMC == 11)
-                            row_offset = 0;   /* AR, SP?, then no offset */
-                        else if (!row_offset) /* output starts at the     */
-                            row_offset = 1;   /* second row => offset = 1 */
-                    }
-                    break;
-
-                case GAL20RA10:
-                    switch (suffix) {
-                        case SUFFIX_E:      /* enable is the first row */
-                            row_offset = 0; /* of the OLMC             */
-                            break;
-
-                        case SUFFIX_CLK:    /* Clock is the second row */
-                            row_offset = 1; /* of the OLMC             */
-                            break;
-
-                        case SUFFIX_ARST:   /* AReset is the third row */
-                            row_offset = 2; /* of the OLMC             */
-                            break;
-
-                        case SUFFIX_APRST:  /* APreset is the fourth row */
-                            row_offset = 3; /* of the OLMC               */
-                            break;
-
-                        default:                 /* output equation starts */
-                            if (row_offset <= 3) /* at the fifth row       */
-                                row_offset = 4;
-                    }
-                    break;
-            }
 
             pin_num = actPin.p_Pin;
 
