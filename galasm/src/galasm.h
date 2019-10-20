@@ -163,7 +163,7 @@ int GetNextLine(void);
 void AsmError(int errornum, int pinnum);
 void WriteChipFile(char* filename, Config_t* cfg);
 void WritePinFile(char* filename, Config_t* cfg);
-void WriteFuseFile(char* filename, Config_t* cfg);
+void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg);
 void WriteSpaces(FILE* fp, int numof);
 void WriteRow(FILE* fp, int row, int num_of_col);
 int IsOR(char);
