@@ -88,16 +88,32 @@ struct GalasmFixture : public testing::Test {
     int rc{0};
 };
 
+TEST_F(GalasmFixture, Filenames) {
+    char* inFilename = strdup("GAL22V10.pld");
+    char* outFilename = strdup("GAL22V10.xxx          ");
+
+    int rc = GetBaseName(inFilename, "jed", outFilename);
+    EXPECT_TRUE(!rc);
+
+    EXPECT_EQ("GAL22V10.jed", std::string(outFilename));
+
+    free(inFilename);
+    free(outFilename);
+}
+
 TEST_F(GalasmFixture, GAL20RA10_PLD) {
     N = fileSize("GAL20RA10.pld");
 
     std::vector<unsigned char> v(N, 0x00);
     res = readFileToBuffer("GAL20RA10.pld", N, v.data());
 
-    rc = assemblePldMemory("X20RA10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
+    rc = assemblePldMemory("GAL20RA10_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
     EXPECT_TRUE(!rc);
 
-    EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "X20RA10_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "GAL20RA10_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("GAL20RA10.chp", "GAL20RA10_out.chp"));
+    // EXPECT_TRUE(compareTwoFiles("GAL20RA10.fus", "GAL20RA10_out.fus"));
+    // EXPECT_TRUE(compareTwoFiles("GAL20RA10.pin", "GAL20RA10_out.pin"));
 }
 
 TEST_F(GalasmFixture, GAL22V10_PLD) {
@@ -107,10 +123,13 @@ TEST_F(GalasmFixture, GAL22V10_PLD) {
     res = readFileToBuffer("GAL22V10.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
+    rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "GAL22V10_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("GAL22V10.chp", "GAL22V10_out.chp"));
+    // EXPECT_TRUE(compareTwoFiles("GAL22V10.fus", "GAL22V10_out.fus"));
+    // EXPECT_TRUE(compareTwoFiles("GAL22V10.pin", "GAL22V10_out.pin"));
 }
 
 TEST_F(GalasmFixture, GenerateCounter_PLD) {
@@ -125,7 +144,6 @@ TEST_F(GalasmFixture, GenerateCounter_PLD) {
 
     EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
     EXPECT_TRUE(compareTwoFiles("Counter.chp", "Counter_out.chp"));
-
     // EXPECT_TRUE(compareTwoFiles("Counter.fus", "Counter_out.fus"));
     // EXPECT_TRUE(compareTwoFiles("Counter.pin", "Counter_out.pin"));
 }
@@ -137,10 +155,13 @@ TEST_F(GalasmFixture, Gatter_PLD) {
     res = readFileToBuffer("Gatter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
+    rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Gatter.jed", "Gatter_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("Gatter.chp", "Gatter_out.chp"));
+    // EXPECT_TRUE(compareTwoFiles("Gatter.fus", "Gatter_out.fus"));
+    // EXPECT_TRUE(compareTwoFiles("Gatter.pin", "Gatter_out.pin"));
 }
 
 TEST_F(GalasmFixture, Tristate_PLD) {
@@ -150,21 +171,13 @@ TEST_F(GalasmFixture, Tristate_PLD) {
     res = readFileToBuffer("Tristate.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Tristate_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
+    rc = assemblePldMemory("Tristate_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Tristate.jed", "Tristate_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("Tristate.chp", "Tristate_out.chp"));
+    // EXPECT_TRUE(compareTwoFiles("Tristate.fus", "Tristate_out.fus"));
+    // EXPECT_TRUE(compareTwoFiles("Tristate.pin", "Tristate_out.pin"));
 }
 
-TEST_F(GalasmFixture, Filenames) {
-    char* inFilename = strdup("GAL22V10.pld");
-    char* outFilename = strdup("GAL22V10.xxx          ");
 
-    int rc = GetBaseName(inFilename, "jed", outFilename);
-    EXPECT_TRUE(!rc);
-
-    EXPECT_EQ("GAL22V10.jed", std::string(outFilename));
-
-    free(inFilename);
-    free(outFilename);
-}
