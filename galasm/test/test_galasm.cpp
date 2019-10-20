@@ -36,44 +36,6 @@ bool rangeEqual(InputIterator1 first1,
     return (first1 == last1) && (first2 == last2);
 }
 
-bool compareTwoFiles(const std::string& filename1, const std::string& filename2) {
-    std::ifstream file1(filename1);
-    std::ifstream file2(filename2);
-
-    std::istreambuf_iterator<char> begin1(file1);
-    std::istreambuf_iterator<char> begin2(file2);
-
-    std::istreambuf_iterator<char> end;
-
-    return rangeEqual(begin1, end, begin2, end);
-}
-
-int fileSize(const char* filename) {
-    FILE* fp = fopen(filename, "r");
-    if (!fp) {
-        return -1;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    int size = ftell(fp);
-
-    fclose(fp);
-
-    return size;
-}
-
-bool readFileToBuffer(const char* filename, int filesize, unsigned char* filebuff) {
-    FILE* fp = fopen(filename, "r");
-    if (!fp) {
-        return false;
-    }
-
-    int actlen = fread(filebuff, 1, filesize, fp);
-    fclose(fp);
-
-    return (actlen == filesize);
-}
-
 struct GalasmFixture : public testing::Test {
     GalasmFixture() {
         //
@@ -81,6 +43,44 @@ struct GalasmFixture : public testing::Test {
 
     ~GalasmFixture() {
         //
+    }
+
+    static int fileSize(const char* filename) {
+        FILE* fp = fopen(filename, "r");
+        if (!fp) {
+            return -1;
+        }
+
+        fseek(fp, 0, SEEK_END);
+        int size = ftell(fp);
+
+        fclose(fp);
+
+        return size;
+    }
+
+    static bool readFileToBuffer(const char* filename, int filesize, unsigned char* filebuff) {
+        FILE* fp = fopen(filename, "r");
+        if (!fp) {
+            return false;
+        }
+
+        int actlen = fread(filebuff, 1, filesize, fp);
+        fclose(fp);
+
+        return (actlen == filesize);
+    }
+
+    static bool compareTwoFiles(const std::string& filename1, const std::string& filename2) {
+        std::ifstream file1(filename1);
+        std::ifstream file2(filename2);
+
+        std::istreambuf_iterator<char> begin1(file1);
+        std::istreambuf_iterator<char> begin2(file2);
+
+        std::istreambuf_iterator<char> end;
+
+        return rangeEqual(begin1, end, begin2, end);
     }
 
     int N{0};
@@ -120,10 +120,14 @@ TEST_F(GalasmFixture, GenerateCounter_PLD) {
     res = readFileToBuffer("Counter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 0, 0, 0, 0, 0, false);
+    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
+    EXPECT_TRUE(compareTwoFiles("Counter.chp", "Counter_out.chp"));
+
+    // EXPECT_TRUE(compareTwoFiles("Counter.fus", "Counter_out.fus"));
+    // EXPECT_TRUE(compareTwoFiles("Counter.pin", "Counter_out.pin"));
 }
 
 TEST_F(GalasmFixture, Gatter_PLD) {
