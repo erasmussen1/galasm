@@ -164,23 +164,21 @@ static void outputToFiles(const char* file, JedecStruct_t* jedec, Config_t* cfg)
     }
 }
 
-/**
- * get OLMC number
- */
-static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
+static int getOlmcPinNumber(const int gal_type, const uint8_t pinNumber) {
     int n = -1;
-    switch (cfg->gal_type) {
+
+    switch (gal_type) {
         case GAL16V8:
-            n = actPin->p_Pin - 12;
+            n = pinNumber - 12;
             break;
 
         case GAL20V8:
-            n = actPin->p_Pin - 15;
+            n = pinNumber - 15;
             break;
 
         case GAL22V10:
         case GAL20RA10:
-            n = actPin->p_Pin - 14;
+            n = pinNumber - 14;
             break;
 
         default:
@@ -188,6 +186,13 @@ static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
     }
 
     return n;
+}
+
+/**
+ * get OLMC number
+ */
+static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
+    return getOlmcPinNumber(cfg->gal_type, actPin->p_Pin);
 }
 
 static int isEndOfChipNameBlank(unsigned char* ch, long offset) {
@@ -1639,6 +1644,7 @@ int IsNEG(char chr) {
 void WriteChipFile(char* filename, Config_t* cfg) {
     FILE* fp = fopen(filename, (char*)"w");
     if (!fp) {
+        ErrorReq(13);
         return;
     }
 
@@ -1677,89 +1683,84 @@ void WriteChipFile(char* filename, Config_t* cfg) {
 }
 
 void WritePinFile(char* filename, Config_t* cfg) {
-    FILE* fp;
-    int k, n, flag;
-
     uint8_t* pinnames = &cfg->PinNames[0][0];
     int num_of_pins = cfg->num_of_pins;
     int gal_type = cfg->gal_type;
 
-    if ((fp = fopen(filename, (char*)"w"))) {
-        fprintf(fp, "\n\n");
-        fprintf(fp, " Pin # | Name     | Pin Type\n");
-        fprintf(fp, "-----------------------------\n");
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        ErrorReq(13);
+        return;
+    }
 
-        for (n = 1; n <= num_of_pins; n++) {
-            fprintf(fp, "  %2d   | ", n);
-            fprintf(fp, "%s", pinnames + (n - 1) * 10);
-            WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
+    fprintf(fp, "\n\n");
+    fprintf(fp, " Pin # | Name     | Pin Type\n");
+    fprintf(fp, "-----------------------------\n");
 
-            flag = 0;
-            if (n == num_of_pins / 2) {
-                fprintf(fp, "| GND\n");
+    int flag = 0;
+    for (int n = 1; n <= num_of_pins; n++) {
+        fprintf(fp, "  %2d   | ", n);
+        fprintf(fp, "%s", pinnames + (n - 1) * 10);
+        WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
+
+        flag = 0;
+        if (n == num_of_pins / 2) {
+            fprintf(fp, "| GND\n");
+            flag = 1;
+        }
+
+        if (n == num_of_pins) {
+            fprintf(fp, "| VCC\n\n");
+            flag = 1;
+        }
+
+        if (gal_type == GAL16V8 || gal_type == GAL20V8) {
+            if (modus == MODE3 && n == 1) {
+                fprintf(fp, "| Clock\n");
                 flag = 1;
             }
 
-            if (n == num_of_pins) {
-                fprintf(fp, "| VCC\n\n");
-                flag = 1;
-            }
-
-            if (gal_type == GAL16V8 || gal_type == GAL20V8) {
-                if (modus == MODE3 && n == 1) {
-                    fprintf(fp, "| Clock\n");
+            if (modus == MODE3) {
+                if (gal_type == GAL16V8 && n == 11) {
+                    fprintf(fp, "| /OE\n");
                     flag = 1;
                 }
 
-                if (modus == MODE3) {
-                    if (gal_type == GAL16V8 && n == 11) {
-                        fprintf(fp, "| /OE\n");
-                        flag = 1;
-                    }
-
-                    if (gal_type == GAL20V8 && n == 13) {
-                        fprintf(fp, "| /OE\n");
-                        flag = 1;
-                    }
+                if (gal_type == GAL20V8 && n == 13) {
+                    fprintf(fp, "| /OE\n");
+                    flag = 1;
                 }
             }
-
-            if (gal_type == GAL22V10 && n == 1) {
-                fprintf(fp, "| Clock/Input\n");
-                flag = 1;
-            }
-
-            if ((gal_type == GAL16V8 && n >= 12 && n <= 19) ||
-                (gal_type == GAL20V8 && n >= 15 && n <= 22) ||
-                (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
-                (gal_type == GAL22V10 && n >= 14 && n <= 23)) {
-
-                if (gal_type == GAL16V8)
-                    k = n - 12;
-                else if (gal_type == GAL20V8)
-                    k = n - 15;
-                else
-                    k = n - 14;
-
-                if (OLMC[k].PinType != INPUT)
-                    if (OLMC[k].PinType)
-                        fprintf(fp, "| Output\n");
-                    else
-                        fprintf(fp, "| NC\n");
-                else
-                    fprintf(fp, "| Input\n");
-            } else {
-                if (!flag)
-                    fprintf(fp, "| Input\n");
-            }
         }
 
-        if (fclose(fp) == EOF) {
-            ErrorReq(8); /* can't close file */
-            return;
+        if (gal_type == GAL22V10 && n == 1) {
+            fprintf(fp, "| Clock/Input\n");
+            flag = 1;
         }
-    } else {
-        ErrorReq(13);
+
+        if ((gal_type == GAL16V8 && n >= 12 && n <= 19) ||
+            (gal_type == GAL20V8 && n >= 15 && n <= 22) ||
+            (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
+            (gal_type == GAL22V10 && n >= 14 && n <= 23)) {
+
+            // n is pinNumber
+            int k = getOlmcPinNumber(gal_type, n);
+
+            if (OLMC[k].PinType != INPUT)
+                if (OLMC[k].PinType)
+                    fprintf(fp, "| Output\n");
+                else
+                    fprintf(fp, "| NC\n");
+            else
+                fprintf(fp, "| Input\n");
+        } else {
+            if (!flag)
+                fprintf(fp, "| Input\n");
+        }
+    }
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8);
         return;
     }
 }
