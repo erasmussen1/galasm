@@ -151,8 +151,7 @@ extern char* AsmErrorArray[];
 
 /*************************** function declartions ****************************/
 
-int AssemblePldFile(
-    const char* file, unsigned char* fbuff2, int size2, Config_t* cfg, bool verbose);
+int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t* cfg);
 int GetBaseName(const char* filename, const char* ext, char* newfilename);
 
 /* GALasm.c */

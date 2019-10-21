@@ -7,6 +7,7 @@
  * This structure is used to store GALasm's configuration
  */
 typedef struct {
+    bool verbose;
     int gal_type;
     bool JedecSecBit; /* set security bit in JEDEC?      */
     bool JedecFuseChk;

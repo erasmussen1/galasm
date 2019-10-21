@@ -661,7 +661,6 @@ void IsPinName(UBYTE* pinnames, int numofpins) {
 }
 
 
-
 /******************************************************************************
 ** Is_AR_SP()
 *******************************************************************************
@@ -1047,8 +1046,7 @@ void AsmError(int errornum, int pinnum) {
  *
  * remarks: This function does assemble a *.pld file.
  */
-int AssemblePldFile(
-    const char* file, unsigned char* fbuff, int fsize, Config_t* cfg, bool verbose) {
+int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t* cfg) {
     UBYTE chr;
     UBYTE *bool_start, *oldptr;
     char prevOp;
@@ -1256,7 +1254,7 @@ int AssemblePldFile(
 
     /* this is a two-pass-assembler */
     for (pass = 0; pass < 2; pass++) {
-        if (verbose) {
+        if (cfg->verbose) {
             printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
         }
 
@@ -1394,7 +1392,7 @@ int AssemblePldFile(
             }
         }
 
-        if (pass && verbose) {
+        if (pass && cfg->verbose) {
             printf("GAL %s; Operation mode %d; Security fuse %s\n",
                    cfg->name,
                    modus,
@@ -1907,4 +1905,3 @@ int AssemblePldFile(
 
     return 0;
 }
-
