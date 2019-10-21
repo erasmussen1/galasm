@@ -552,7 +552,7 @@ int GetNextLine(void) {
     return 0;
 }
 
-/*
+/**
  * GetNextChar()
  *
  * input:   none
@@ -598,7 +598,7 @@ int GetNextChar(void) {
     return 0;
 }
 
-/*
+/**
  * IsPinName()
  *
  * input:   *pinnames   pointer to the pinnames array
@@ -999,20 +999,18 @@ void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
     }
 }
 
-/******************************************************************************
-** WriteSpaces()
-*******************************************************************************
-** input:   *fp         pointer to the file handle of the file
-**          numof       number of spaces to be written to the file
-**
-** output:  none
-**
-** remarks: write "numof" spaces to the file characterized by *fp
-******************************************************************************/
-void WriteSpaces(FILE* fp, int numof) {
-    for (int n = 0; n < numof; n++) {
-        fprintf(fp, " ");
-    }
+/*
+ * WriteSpaces()
+ *
+ * input:   *fp         pointer to the file handle of the file
+ *          numof       number of spaces to be written to the file
+ *
+ * output:  none
+ *
+ * remarks: write "numof" spaces to the file characterized by *fp
+ */
+inline void WriteSpaces(FILE* fp, int numof) {
+    fprintf(fp, "%*s", numof, "");
 }
 
 /******************************************************************************
