@@ -471,6 +471,134 @@ static void getRowOffset(Config_t* cfg,
 }
 
 /**
+ * SetAND()
+ *
+ * input:   row         row in which the AND should be set
+ *          pinnum      pin which should be ANDed
+ *          negation    0: pin without negation
+ *                      1: pin with negation sign (/)
+ * output:  none
+ *
+ * remarks: sets an AND (=0) in the fuse matrix
+ */
+void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
+    int column = 0;
+
+    switch (cfg->gal_type) {
+        case GAL16V8:
+            if (modus == MODE1)
+                column = PinToFuse16Mode1[pinnum - 1];
+            if (modus == MODE2)
+                column = PinToFuse16Mode2[pinnum - 1];
+            if (modus == MODE3)
+                column = PinToFuse16Mode3[pinnum - 1];
+            break;
+
+        case GAL20V8:
+            if (modus == MODE1)
+                column = PinToFuse20Mode1[pinnum - 1];
+            if (modus == MODE2)
+                column = PinToFuse20Mode2[pinnum - 1];
+            if (modus == MODE3)
+                column = PinToFuse20Mode3[pinnum - 1];
+            break;
+
+        case GAL22V10:
+            column = PinToFuse22V10[pinnum - 1];
+
+            /* is it a registered OLMC pin?   */
+            /* yes, then correct the negation */
+            if ((pinnum >= 14 && pinnum <= 23) && !jedec->GALS1[23 - pinnum]) {
+                negation = negation ? 0 : 1;
+            }
+            break;
+
+        case GAL20RA10:
+            column = PinToFuse20RA10[pinnum - 1];
+            break;
+    }
+
+    jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
+}
+
+/**
+ * GetNextLine()
+ *
+ * input:
+ *   none
+ *
+ * output:
+ *   0: line found, actptr points to this line
+ *   1: end of file reached
+ *
+ * remarks:
+ *   gets pointer to next line
+ */
+int GetNextLine(void) {
+    while (1) {
+        if (*actptr == '\n') {
+            actptr++;
+            linenum++;
+            break;
+        }
+
+        if (actptr > buffend) {
+            return (1);
+        }
+
+        actptr++;
+    }
+
+    return 0;
+}
+
+/*
+ * GetNextChar()
+ *
+ * input:   none
+ *
+ * output:  0: character found, actptr points to it
+ *          1: no character found
+ *
+ * remarks: searchs the next character which is no comment, space, TAB, LF
+ */
+int GetNextChar(void) {
+    while (1) {
+        switch (*actptr) {
+            case '\n':
+                actptr++;
+                linenum++;
+                break;
+
+            case ' ':
+            case '\t':
+                actptr++;
+                break;
+
+            case ';':
+                if (GetNextLine()) {
+                    return (0);
+                }
+                break;
+
+            default:
+                /* was there a character? */
+                if (*actptr > ' ' && *actptr <= '~') {
+                    return (0);
+                } else {
+                    actptr++;
+                }
+        }
+
+        if (actptr > buffend) {
+            return (1);
+        }
+    }
+
+    return 0;
+}
+
+/**
  * int AssemblePldFile(char *file)
  *
  * input:   file  The file to be assembled
@@ -1342,58 +1470,6 @@ int AssemblePldFile(
 }
 
 /******************************************************************************
-** SetAND()
-*******************************************************************************
-** input:   row         row in which the AND should be set
-**          pinnum      pin which should be ANDed
-**          negation    0: pin without negation
-**                      1: pin with negation sign (/)
-**
-** output:  none
-**
-** remarks: sets an AND (=0) in the fuse matrix
-******************************************************************************/
-void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
-    int column = 0;
-
-    switch (cfg->gal_type) {
-        case GAL16V8:
-            if (modus == MODE1)
-                column = PinToFuse16Mode1[pinnum - 1];
-            if (modus == MODE2)
-                column = PinToFuse16Mode2[pinnum - 1];
-            if (modus == MODE3)
-                column = PinToFuse16Mode3[pinnum - 1];
-            break;
-
-        case GAL20V8:
-            if (modus == MODE1)
-                column = PinToFuse20Mode1[pinnum - 1];
-            if (modus == MODE2)
-                column = PinToFuse20Mode2[pinnum - 1];
-            if (modus == MODE3)
-                column = PinToFuse20Mode3[pinnum - 1];
-            break;
-
-        case GAL22V10:
-            column = PinToFuse22V10[pinnum - 1];
-
-            /* is it a registered OLMC pin?   */
-            /* yes, then correct the negation */
-            if ((pinnum >= 14 && pinnum <= 23) && !jedec->GALS1[23 - pinnum]) {
-                negation = negation ? 0 : 1;
-            }
-            break;
-
-        case GAL20RA10:
-            column = PinToFuse20RA10[pinnum - 1];
-            break;
-    }
-
-    jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
-}
-
-/******************************************************************************
 ** IsPinName()
 *******************************************************************************
 ** input:   *pinnames   pointer to the pinnames array
@@ -1500,82 +1576,6 @@ void Is_AR_SP(UBYTE* ptr) {
     }
 }
 
-/******************************************************************************
-** GetNextChar()
-*******************************************************************************
-** input:   none
-**
-** output:  0: character found, actptr points to it
-**          1: no character found
-**
-** remarks: searchs the next character which is no comment, space, TAB, LF
-******************************************************************************/
-int GetNextChar(void) {
-    while (1) {
-        switch (*actptr) {
-            case '\n':
-                actptr++;
-                linenum++;
-                break;
-
-            case ' ':
-            case '\t':
-                actptr++;
-                break;
-
-            case ';':
-                if (GetNextLine()) {
-                    return (0);
-                }
-                break;
-
-            default:
-                /* was there a character? */
-                if (*actptr > ' ' && *actptr <= '~') {
-                    return (0);
-                } else {
-                    actptr++;
-                }
-        }
-
-        if (actptr > buffend) {
-            return (1);
-        }
-    }
-
-    return 0;
-}
-
-/**
- * GetNextLine()
- *
- * input:
- *   none
- *
- * output:
- *   0: line found, actptr points to this line
- *   1: end of file reached
- *
- * remarks:
- *   gets pointer to next line
- */
-int GetNextLine(void) {
-    while (1) {
-        if (*actptr == '\n') {
-            actptr++;
-            linenum++;
-            break;
-        }
-
-        if (actptr > buffend) {
-            return (1);
-        }
-
-        actptr++;
-    }
-
-    return 0;
-}
 
 /******************************************************************************
 ** IsOR()
