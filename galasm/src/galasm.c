@@ -598,6 +598,445 @@ int GetNextChar(void) {
     return 0;
 }
 
+/*
+ * IsPinName()
+ *
+ * input:   *pinnames   pointer to the pinnames array
+ *          numofpins   number of pins (20 or 24, depends on the type of GAL)
+ *
+ *  global: actptr          pointer to the first character of the pinname
+ *          actPin.p_Pin:   number of pin or NC_PIN; 0: no pin
+ *          actPin.p_Neg:   pinname with '/' = 1;  without '/' = 0
+ *
+ * output:  none
+ *
+ * remarks: This function tests whether actptr points to a pinname or not
+ */
+void IsPinName(UBYTE* pinnames, int numofpins) {
+    actPin.p_Neg = 0; /* install structure for pin */
+    actPin.p_Pin = 0;
+
+    if (IsNEG(*actptr)) { /* negation? */
+        actptr++;
+        actPin.p_Neg = 1;
+    }
+
+    /* get length of pin name */
+    int n = 0;
+    UBYTE* oldactptr = actptr;
+    while (isalpha(*actptr) || isdigit(*actptr)) {
+        actptr++;
+        n++;
+    }
+
+    if (!n) {
+        return;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldactptr, "NC", (size_t)2)) {
+        actPin.p_Pin = NC_PIN; /* NC pin*/
+        return;
+    }
+
+    /* examine whole list of pin names */
+    int i = 0;
+    for (int k = 0; k < numofpins; k++) {
+        i = 0;
+
+        if (IsNEG(*(pinnames + k * 10))) {
+            i = 1;
+        }
+
+        /* are the string sizes equal? */
+        if (n != (int)strlen((char*)(pinnames + k * 10 + i))) {
+            continue;
+        }
+
+        /* yes, then compare these strings */
+        if (!(strncmp((char*)oldactptr, (char*)(pinnames + k * 10 + i), (size_t)n))) {
+            actPin.p_Pin = k + 1;
+            break;
+        }
+    }
+}
+
+
+
+/******************************************************************************
+** Is_AR_SP()
+*******************************************************************************
+** input:   *ptr    pointer to the first character of the pinname
+**
+** output:  none
+**          global  actPin.p_Pin: 23: AR, 24: SP, 0: no AR, SP
+**                  actPin.p_Neg: pinname with '/' = 1;  without '/' = 0
+**
+** remarks: This function tests whether actptr points to a AR or SP
+******************************************************************************/
+void Is_AR_SP(UBYTE* ptr) {
+    /* install structure for pin */
+    actPin.p_Neg = 0;
+    actPin.p_Pin = 0;
+
+    if (IsNEG(*ptr)) {
+        ptr++;
+        actPin.p_Neg = 1;
+    }
+
+    /* get length of pin name */
+    UBYTE* oldptr = ptr;
+
+    int n = 0;
+    while (isalpha(*ptr) || isdigit(*ptr)) {
+        ptr++;
+        n++;
+    }
+
+    /* assign AR to "OLMC 11" ("pin 24") and */
+    /* assign SP to "OLMC 12" ("pin 25")     */
+    if (!n) {
+        return;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
+        actPin.p_Pin = DUMMY_OLMC11;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
+        actPin.p_Pin = DUMMY_OLMC12;
+    }
+}
+
+
+/******************************************************************************
+** IsOR()
+*******************************************************************************
+** input:   none
+**
+** output:  1: chr is a OR
+**          0: chr is no OR
+**
+** remarks: checks whether or not chr is a OR sign or not
+******************************************************************************/
+int IsOR(char chr) {
+    if (chr == '+' || chr == '#') {
+        return (1);
+    }
+
+    return (0);
+}
+
+/******************************************************************************
+** IsAND()
+*******************************************************************************
+** input:   none
+**
+** output:  1: chr is a AND
+**          0: chr is no AND
+**
+** remarks: checks whether or not chr is a AND sign or not
+******************************************************************************/
+int IsAND(char chr) {
+    if (chr == '*' || chr == '&') {
+        return (1);
+    }
+
+    return (0);
+}
+
+/******************************************************************************
+** IsNEG()
+*******************************************************************************
+** input:   none
+**
+** output:  1: chr is a negation sign
+**          0: chr is no negation sign
+**
+** remarks: checks whether or not chr is a negation sign or not
+******************************************************************************/
+int IsNEG(char chr) {
+    if (chr == '/' || chr == '!') {
+        return (1);
+    }
+
+    return (0);
+}
+
+/******************************************************************************
+** WriteChipFile(char *filename, int gal_type)
+*******************************************************************************
+** input:   gal type
+**			filename
+**
+** output:  none
+**
+** remarks: make chip file
+******************************************************************************/
+void WriteChipFile(char* filename, Config_t* cfg) {
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        ErrorReq(13);
+        return;
+    }
+
+    fprintf(fp, "\n\n");
+    WriteSpaces(fp, 31);
+    fprintf(fp, " %s\n\n", cfg->name);
+
+    WriteSpaces(fp, 26);
+    fprintf(fp, "-------\\___/-------\n");
+
+    uint8_t* pinnames = &cfg->PinNames[0][0];
+
+    for (int n = 0; n < cfg->num_of_pins / 2; n++) {
+        WriteSpaces(fp, 25 - (int)strlen((char*)(pinnames + n * 10)));
+
+        fprintf(fp,
+                "%s | %2d           %2d | %s\n",
+                pinnames + n * 10,
+                n + 1,
+                cfg->num_of_pins - n,
+                pinnames + (cfg->num_of_pins - n - 1) * 10);
+
+        if (n < cfg->num_of_pins / 2 - 1) {
+            WriteSpaces(fp, 26);
+            fprintf(fp, "|                 |\n");
+        }
+    }
+
+    WriteSpaces(fp, 26);
+    fprintf(fp, "-------------------\n");
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8);
+        return;
+    }
+}
+
+void WritePinFile(char* filename, Config_t* cfg) {
+    uint8_t* pinnames = &cfg->PinNames[0][0];
+    int num_of_pins = cfg->num_of_pins;
+    int gal_type = cfg->gal_type;
+
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        ErrorReq(13);
+        return;
+    }
+
+    fprintf(fp, "\n\n");
+    fprintf(fp, " Pin # | Name     | Pin Type\n");
+    fprintf(fp, "-----------------------------\n");
+
+    int flag = 0;
+    for (int n = 1; n <= num_of_pins; n++) {
+        fprintf(fp, "  %2d   | ", n);
+        fprintf(fp, "%s", pinnames + (n - 1) * 10);
+        WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
+
+        flag = 0;
+        if (n == num_of_pins / 2) {
+            fprintf(fp, "| GND\n");
+            flag = 1;
+        }
+
+        if (n == num_of_pins) {
+            fprintf(fp, "| VCC\n\n");
+            flag = 1;
+        }
+
+        if (gal_type == GAL16V8 || gal_type == GAL20V8) {
+            if (modus == MODE3 && n == 1) {
+                fprintf(fp, "| Clock\n");
+                flag = 1;
+            }
+
+            if (modus == MODE3) {
+                if (gal_type == GAL16V8 && n == 11) {
+                    fprintf(fp, "| /OE\n");
+                    flag = 1;
+                }
+
+                if (gal_type == GAL20V8 && n == 13) {
+                    fprintf(fp, "| /OE\n");
+                    flag = 1;
+                }
+            }
+        }
+
+        if (gal_type == GAL22V10 && n == 1) {
+            fprintf(fp, "| Clock/Input\n");
+            flag = 1;
+        }
+
+        if ((gal_type == GAL16V8 && n >= 12 && n <= 19) ||
+            (gal_type == GAL20V8 && n >= 15 && n <= 22) ||
+            (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
+            (gal_type == GAL22V10 && n >= 14 && n <= 23)) {
+
+            // n is pinNumber
+            int k = getOlmcPinNumber(gal_type, n);
+
+            if (OLMC[k].PinType != INPUT)
+                if (OLMC[k].PinType)
+                    fprintf(fp, "| Output\n");
+                else
+                    fprintf(fp, "| NC\n");
+            else
+                fprintf(fp, "| Input\n");
+        } else {
+            if (!flag)
+                fprintf(fp, "| Input\n");
+        }
+    }
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8);
+        return;
+    }
+}
+
+/******************************************************************************
+** WriteRow()
+*******************************************************************************
+** input:   *fp     pointer to the file handle
+**          row     number of row which should be written
+**
+** output:  none
+**
+** remarks: writes a row of an OLMC to the file characterized by the file
+**          handle fp
+******************************************************************************/
+void WriteRow(FILE* fp, int row, int num_of_col) {
+    fprintf(fp, "\n%3d ", row); /* print row number */
+
+    for (int col = 0; col < num_of_col; col++) { /* print fuses of a row */
+        if (!((col) % 4)) {
+            fprintf(fp, " ");
+        }
+
+        if (Jedec.GALLogic[row * num_of_col + col]) {
+            fprintf(fp, "-");
+        } else {
+            fprintf(fp, "x");
+        }
+    }
+}
+
+void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
+    int gal_type = cfg->gal_type;
+    int num_of_col = cfg->num_of_col;
+    int numofOLMCs = cfg->num_of_olmcs;
+    int pin = cfg->num_of_pins - 1;
+    uint8_t* pinnames = &cfg->PinNames[0][0];
+
+    {
+        /*
+         * This might be a bug in the original code.
+         * (missing break in switch statments)
+         *
+         * Leave this but in, until it is confirmed
+         * that it is a bug
+         */
+        num_of_col = MAX_FUSE_ADR22V10 + 1;
+    }
+
+    FILE* fp = fopen(filename, (char*)"w");
+    if (!fp) {
+        ErrorReq(13);
+        return;
+    }
+
+    int row = 0;
+    for (int olmc = 0; olmc < numofOLMCs; olmc++) {
+
+        /* AR when 22V10 */
+        if (gal_type == GAL22V10 && olmc == 0) {
+            fprintf(fp, "\n\nAR");
+            WriteRow(fp, row, num_of_col);
+            row++;
+        }
+
+        fprintf(fp, "\n\nPin %2d = ", pin); /* print pin */
+        fprintf(fp, "%s", pinnames + (pin - 1) * 10);
+
+        WriteSpaces(fp, 13 - (int)strlen((char*)(pinnames + (pin - 1) * 10)));
+
+        if (gal_type == GAL16V8)
+            fprintf(fp, "XOR = %1d   AC1 = %1d", jedec->GALXOR[19 - pin], jedec->GALAC1[19 - pin]);
+        else if (gal_type == GAL20V8)
+            fprintf(fp, "XOR = %1d   AC1 = %1d", jedec->GALXOR[23 - pin], jedec->GALAC1[23 - pin]);
+        else if (gal_type == GAL22V10)
+            fprintf(fp, "S0 = %1d   S1 = %1d", jedec->GALXOR[23 - pin], jedec->GALAC1[23 - pin]);
+        else if (gal_type == GAL20RA10)
+            fprintf(fp, "S0 = %1d", jedec->GALXOR[23 - pin]);
+
+        /* get number of rows of an OLMC */
+        int numofrows = 8;
+        if (gal_type == GAL22V10) {
+            numofrows = OLMCSize22V10[olmc];
+        }
+
+        /* print all fuses of an OLMC */
+        for (int n = 0; n < numofrows; n++) {
+            WriteRow(fp, row, num_of_col);
+            row++;
+        }
+
+        /* SP when 22V10 */
+        if (gal_type == GAL22V10 && olmc == 9) {
+            fprintf(fp, "\n\nSP");
+            WriteRow(fp, row, num_of_col);
+        }
+
+        pin--;
+    }
+
+    fprintf(fp, "\n\n");
+
+    if (fclose(fp) == EOF) {
+        ErrorReq(8); /* can't close file */
+        return;
+    }
+}
+
+/******************************************************************************
+** WriteSpaces()
+*******************************************************************************
+** input:   *fp         pointer to the file handle of the file
+**          numof       number of spaces to be written to the file
+**
+** output:  none
+**
+** remarks: write "numof" spaces to the file characterized by *fp
+******************************************************************************/
+void WriteSpaces(FILE* fp, int numof) {
+    for (int n = 0; n < numof; n++) {
+        fprintf(fp, " ");
+    }
+}
+
+/******************************************************************************
+** AsmError()
+*******************************************************************************
+** input:   errornum    number of error to be printed
+**          pinnum      = 0: print "Error in line linnum:" ...
+**                      > 0: print "Pin pinnum:" ...
+**
+** output:  none
+**
+** remarks: print error messages of the GAL-assembler and free
+**          the memory allocated by the file buffer
+******************************************************************************/
+void AsmError(int errornum, int pinnum) {
+    if (!pinnum)
+        printf("Error in line %d: ", linenum);
+    else
+        printf("Error, pin %d: ", pinnum);
+
+    printf("%s\n", AsmErrorArray[errornum]);
+}
+
 /**
  * int AssemblePldFile(char *file)
  *
@@ -1469,439 +1908,3 @@ int AssemblePldFile(
     return 0;
 }
 
-/******************************************************************************
-** IsPinName()
-*******************************************************************************
-** input:   *pinnames   pointer to the pinnames array
-**          numofpins   number of pins (20 or 24, depends on the type of GAL)
-**
-**  global: actptr          pointer to the first character of the pinname
-**          actPin.p_Pin:   number of pin or NC_PIN; 0: no pin
-**          actPin.p_Neg:   pinname with '/' = 1;  without '/' = 0
-**
-** output:  none
-**
-** remarks: This function tests whether actptr points to a pinname or not
-******************************************************************************/
-void IsPinName(UBYTE* pinnames, int numofpins) {
-    actPin.p_Neg = 0; /* install structure for pin */
-    actPin.p_Pin = 0;
-
-    if (IsNEG(*actptr)) { /* negation? */
-        actptr++;
-        actPin.p_Neg = 1;
-    }
-
-    /* get length of pin name */
-    int n = 0;
-    UBYTE* oldactptr = actptr;
-    while (isalpha(*actptr) || isdigit(*actptr)) {
-        actptr++;
-        n++;
-    }
-
-    if (!n) {
-        return;
-    }
-
-    if ((n == 2) && !strncmp((char*)oldactptr, "NC", (size_t)2)) {
-        actPin.p_Pin = NC_PIN; /* NC pin*/
-        return;
-    }
-
-    /* examine whole list of pin names */
-    int i = 0;
-    for (int k = 0; k < numofpins; k++) {
-        i = 0;
-
-        if (IsNEG(*(pinnames + k * 10))) {
-            i = 1;
-        }
-
-        /* are the string sizes equal? */
-        if (n != (int)strlen((char*)(pinnames + k * 10 + i))) {
-            continue;
-        }
-
-        /* yes, then compare these strings */
-        if (!(strncmp((char*)oldactptr, (char*)(pinnames + k * 10 + i), (size_t)n))) {
-            actPin.p_Pin = k + 1;
-            break;
-        }
-    }
-}
-
-/******************************************************************************
-** Is_AR_SP()
-*******************************************************************************
-** input:   *ptr    pointer to the first character of the pinname
-**
-** output:  none
-**          global  actPin.p_Pin: 23: AR, 24: SP, 0: no AR, SP
-**                  actPin.p_Neg: pinname with '/' = 1;  without '/' = 0
-**
-** remarks: This function tests whether actptr points to a AR or SP
-******************************************************************************/
-void Is_AR_SP(UBYTE* ptr) {
-    /* install structure for pin */
-    actPin.p_Neg = 0;
-    actPin.p_Pin = 0;
-
-    if (IsNEG(*ptr)) {
-        ptr++;
-        actPin.p_Neg = 1;
-    }
-
-    /* get length of pin name */
-    UBYTE* oldptr = ptr;
-
-    int n = 0;
-    while (isalpha(*ptr) || isdigit(*ptr)) {
-        ptr++;
-        n++;
-    }
-
-    /* assign AR to "OLMC 11" ("pin 24") and */
-    /* assign SP to "OLMC 12" ("pin 25")     */
-    if (!n) {
-        return;
-    }
-
-    if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
-        actPin.p_Pin = DUMMY_OLMC11;
-    }
-
-    if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
-        actPin.p_Pin = DUMMY_OLMC12;
-    }
-}
-
-
-/******************************************************************************
-** IsOR()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a OR
-**          0: chr is no OR
-**
-** remarks: checks whether or not chr is a OR sign or not
-******************************************************************************/
-int IsOR(char chr) {
-    if (chr == '+' || chr == '#') {
-        return (1);
-    }
-
-    return (0);
-}
-
-/******************************************************************************
-** IsAND()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a AND
-**          0: chr is no AND
-**
-** remarks: checks whether or not chr is a AND sign or not
-******************************************************************************/
-int IsAND(char chr) {
-    if (chr == '*' || chr == '&') {
-        return (1);
-    }
-
-    return (0);
-}
-
-/******************************************************************************
-** IsNEG()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a negation sign
-**          0: chr is no negation sign
-**
-** remarks: checks whether or not chr is a negation sign or not
-******************************************************************************/
-int IsNEG(char chr) {
-    if (chr == '/' || chr == '!') {
-        return (1);
-    }
-
-    return (0);
-}
-
-/******************************************************************************
-** WriteChipFile(char *filename, int gal_type)
-*******************************************************************************
-** input:   gal type
-**			filename
-**
-** output:  none
-**
-** remarks: make chip file
-******************************************************************************/
-void WriteChipFile(char* filename, Config_t* cfg) {
-    FILE* fp = fopen(filename, (char*)"w");
-    if (!fp) {
-        ErrorReq(13);
-        return;
-    }
-
-    fprintf(fp, "\n\n");
-    WriteSpaces(fp, 31);
-    fprintf(fp, " %s\n\n", cfg->name);
-
-    WriteSpaces(fp, 26);
-    fprintf(fp, "-------\\___/-------\n");
-
-    uint8_t* pinnames = &cfg->PinNames[0][0];
-
-    for (int n = 0; n < cfg->num_of_pins / 2; n++) {
-        WriteSpaces(fp, 25 - (int)strlen((char*)(pinnames + n * 10)));
-
-        fprintf(fp,
-                "%s | %2d           %2d | %s\n",
-                pinnames + n * 10,
-                n + 1,
-                cfg->num_of_pins - n,
-                pinnames + (cfg->num_of_pins - n - 1) * 10);
-
-        if (n < cfg->num_of_pins / 2 - 1) {
-            WriteSpaces(fp, 26);
-            fprintf(fp, "|                 |\n");
-        }
-    }
-
-    WriteSpaces(fp, 26);
-    fprintf(fp, "-------------------\n");
-
-    if (fclose(fp) == EOF) {
-        ErrorReq(8);
-        return;
-    }
-}
-
-void WritePinFile(char* filename, Config_t* cfg) {
-    uint8_t* pinnames = &cfg->PinNames[0][0];
-    int num_of_pins = cfg->num_of_pins;
-    int gal_type = cfg->gal_type;
-
-    FILE* fp = fopen(filename, (char*)"w");
-    if (!fp) {
-        ErrorReq(13);
-        return;
-    }
-
-    fprintf(fp, "\n\n");
-    fprintf(fp, " Pin # | Name     | Pin Type\n");
-    fprintf(fp, "-----------------------------\n");
-
-    int flag = 0;
-    for (int n = 1; n <= num_of_pins; n++) {
-        fprintf(fp, "  %2d   | ", n);
-        fprintf(fp, "%s", pinnames + (n - 1) * 10);
-        WriteSpaces(fp, 9 - (int)strlen((char*)(pinnames + (n - 1) * 10)));
-
-        flag = 0;
-        if (n == num_of_pins / 2) {
-            fprintf(fp, "| GND\n");
-            flag = 1;
-        }
-
-        if (n == num_of_pins) {
-            fprintf(fp, "| VCC\n\n");
-            flag = 1;
-        }
-
-        if (gal_type == GAL16V8 || gal_type == GAL20V8) {
-            if (modus == MODE3 && n == 1) {
-                fprintf(fp, "| Clock\n");
-                flag = 1;
-            }
-
-            if (modus == MODE3) {
-                if (gal_type == GAL16V8 && n == 11) {
-                    fprintf(fp, "| /OE\n");
-                    flag = 1;
-                }
-
-                if (gal_type == GAL20V8 && n == 13) {
-                    fprintf(fp, "| /OE\n");
-                    flag = 1;
-                }
-            }
-        }
-
-        if (gal_type == GAL22V10 && n == 1) {
-            fprintf(fp, "| Clock/Input\n");
-            flag = 1;
-        }
-
-        if ((gal_type == GAL16V8 && n >= 12 && n <= 19) ||
-            (gal_type == GAL20V8 && n >= 15 && n <= 22) ||
-            (gal_type == GAL20RA10 && n >= 14 && n <= 23) ||
-            (gal_type == GAL22V10 && n >= 14 && n <= 23)) {
-
-            // n is pinNumber
-            int k = getOlmcPinNumber(gal_type, n);
-
-            if (OLMC[k].PinType != INPUT)
-                if (OLMC[k].PinType)
-                    fprintf(fp, "| Output\n");
-                else
-                    fprintf(fp, "| NC\n");
-            else
-                fprintf(fp, "| Input\n");
-        } else {
-            if (!flag)
-                fprintf(fp, "| Input\n");
-        }
-    }
-
-    if (fclose(fp) == EOF) {
-        ErrorReq(8);
-        return;
-    }
-}
-
-/******************************************************************************
-** WriteRow()
-*******************************************************************************
-** input:   *fp     pointer to the file handle
-**          row     number of row which should be written
-**
-** output:  none
-**
-** remarks: writes a row of an OLMC to the file characterized by the file
-**          handle fp
-******************************************************************************/
-void WriteRow(FILE* fp, int row, int num_of_col) {
-    fprintf(fp, "\n%3d ", row); /* print row number */
-
-    for (int col = 0; col < num_of_col; col++) { /* print fuses of a row */
-        if (!((col) % 4)) {
-            fprintf(fp, " ");
-        }
-
-        if (Jedec.GALLogic[row * num_of_col + col]) {
-            fprintf(fp, "-");
-        } else {
-            fprintf(fp, "x");
-        }
-    }
-}
-
-void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
-    int gal_type = cfg->gal_type;
-    int num_of_col = cfg->num_of_col;
-    int numofOLMCs = cfg->num_of_olmcs;
-    int pin = cfg->num_of_pins - 1;
-    uint8_t* pinnames = &cfg->PinNames[0][0];
-
-    {
-        /*
-         * This might be a bug in the original code.
-         * (missing break in switch statments)
-         *
-         * Leave this but in, until it is confirmed
-         * that it is a bug
-         */
-        num_of_col = MAX_FUSE_ADR22V10 + 1;
-    }
-
-    FILE* fp = fopen(filename, (char*)"w");
-    if (!fp) {
-        ErrorReq(13);
-        return;
-    }
-
-    int row = 0;
-    for (int olmc = 0; olmc < numofOLMCs; olmc++) {
-
-        /* AR when 22V10 */
-        if (gal_type == GAL22V10 && olmc == 0) {
-            fprintf(fp, "\n\nAR");
-            WriteRow(fp, row, num_of_col);
-            row++;
-        }
-
-        fprintf(fp, "\n\nPin %2d = ", pin); /* print pin */
-        fprintf(fp, "%s", pinnames + (pin - 1) * 10);
-
-        WriteSpaces(fp, 13 - (int)strlen((char*)(pinnames + (pin - 1) * 10)));
-
-        if (gal_type == GAL16V8)
-            fprintf(fp, "XOR = %1d   AC1 = %1d", jedec->GALXOR[19 - pin], jedec->GALAC1[19 - pin]);
-        else if (gal_type == GAL20V8)
-            fprintf(fp, "XOR = %1d   AC1 = %1d", jedec->GALXOR[23 - pin], jedec->GALAC1[23 - pin]);
-        else if (gal_type == GAL22V10)
-            fprintf(fp, "S0 = %1d   S1 = %1d", jedec->GALXOR[23 - pin], jedec->GALAC1[23 - pin]);
-        else if (gal_type == GAL20RA10)
-            fprintf(fp, "S0 = %1d", jedec->GALXOR[23 - pin]);
-
-        /* get number of rows of an OLMC */
-        int numofrows = 8;
-        if (gal_type == GAL22V10) {
-            numofrows = OLMCSize22V10[olmc];
-        }
-
-        /* print all fuses of an OLMC */
-        for (int n = 0; n < numofrows; n++) {
-            WriteRow(fp, row, num_of_col);
-            row++;
-        }
-
-        /* SP when 22V10 */
-        if (gal_type == GAL22V10 && olmc == 9) {
-            fprintf(fp, "\n\nSP");
-            WriteRow(fp, row, num_of_col);
-        }
-
-        pin--;
-    }
-
-    fprintf(fp, "\n\n");
-
-    if (fclose(fp) == EOF) {
-        ErrorReq(8); /* can't close file */
-        return;
-    }
-}
-
-/******************************************************************************
-** WriteSpaces()
-*******************************************************************************
-** input:   *fp         pointer to the file handle of the file
-**          numof       number of spaces to be written to the file
-**
-** output:  none
-**
-** remarks: write "numof" spaces to the file characterized by *fp
-******************************************************************************/
-void WriteSpaces(FILE* fp, int numof) {
-    for (int n = 0; n < numof; n++) {
-        fprintf(fp, " ");
-    }
-}
-
-/******************************************************************************
-** AsmError()
-*******************************************************************************
-** input:   errornum    number of error to be printed
-**          pinnum      = 0: print "Error in line linnum:" ...
-**                      > 0: print "Pin pinnum:" ...
-**
-** output:  none
-**
-** remarks: print error messages of the GAL-assembler and free
-**          the memory allocated by the file buffer
-******************************************************************************/
-void AsmError(int errornum, int pinnum) {
-    if (!pinnum)
-        printf("Error in line %d: ", linenum);
-    else
-        printf("Error, pin %d: ", pinnum);
-
-    printf("%s\n", AsmErrorArray[errornum]);
-}
