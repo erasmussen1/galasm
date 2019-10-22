@@ -1045,6 +1045,29 @@ void AsmError(int errornum, int pinnum) {
     printf("ERR: Error, pin %d: %s\n", pinnum, AsmErrorArray[errornum]);
 }
 
+static int checkSuffix(const int gal_type, const int suffix) {
+    if (gal_type == GAL20RA10) {
+        return 0;
+    }
+
+    int rc = 0;
+    switch (suffix) {
+        case SUFFIX_CLK:
+            rc = 34; /* no .CLK allowed */
+            break;
+
+        case SUFFIX_ARST:
+            rc = 35; /* .ARST is not allowed */
+            break;
+
+        case SUFFIX_APRST:
+            rc = 36; /* .APRST is not allowed */
+            break;
+    }
+
+    return rc;
+}
+
 /**
  * int AssemblePldFile(char *file)
  *
@@ -1460,23 +1483,10 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
 
             /* check whether suffix is allowed or not */
-            if (cfg->gal_type != GAL20RA10) {
-                switch (suffix) {
-                    case SUFFIX_CLK:
-                        AsmError(34, 0); /* no .CLK allowed */
-                        return (-1);
-                        break;
-
-                    case SUFFIX_ARST:
-                        AsmError(35, 0); /* .ARST is not allowed */
-                        return (-1);
-                        break;
-
-                    case SUFFIX_APRST:
-                        AsmError(36, 0); /* .APRST is not allowed */
-                        return (-1);
-                        break;
-                }
+            int rc = checkSuffix(cfg->gal_type, suffix);
+            if (rc) {
+                AsmError(rc, 0);
+                return -1;
             }
 
             if (GetNextChar()) {
