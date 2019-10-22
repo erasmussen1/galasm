@@ -6,7 +6,6 @@
 #include "jedec.h"
 #include "galasm.h"
 
-
 #define SUFFIX_NON 0 /* possible suffixes */
 #define SUFFIX_T 1
 #define SUFFIX_R 2
@@ -70,18 +69,6 @@ int PinToFuse22V10[24] = {0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, -1,
 int PinToFuse20RA10[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
                            -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
 
-
-/* These arrays show which row is connected to which OLMC */
-int ToOLMC[8] = {56, 48, 40, 32, 24, 16, 8, 0};
-
-int ToOLMC22V10[12] = {122, 111, 98, 83, 66, 49, 34, 21, 10, 1, 0, 131};
-
-int ToOLMC20RA10[10] = {72, 64, 56, 48, 40, 32, 24, 16, 8, 0};
-
-/* this array shows the size of the */
-/* 22V10-OLMCs ( AR and SP = 1 )    */
-
-int OLMCSize22V10[12] = {9, 11, 13, 15, 17, 17, 15, 13, 11, 9, 1, 1};
 
 /* The last two entries of the 22V10 arrays are for the   */
 /* AR and SP rows of the 22V10 GAL. This rows are not     */
@@ -302,9 +289,55 @@ static void printPinNames(FILE* fp, Config_t* cfg) {
 #endif
 
 /**
+ * get first the row of the OLMC and the
+ * number of rows which are available
+ */
+static void getStartAndMaxRowOfOlmc(const int gal_type, const int actOlmc, int* start, int* max) {
+
+    /* These arrays show which row is connected to which OLMC */
+    static const int ToOLMC[8] = {56, 48, 40, 32, 24, 16, 8, 0};
+    static const int ToOLMC20RA10[10] = {72, 64, 56, 48, 40, 32, 24, 16, 8, 0};
+    static const int ToOLMC22V10[12] = {122, 111, 98, 83, 66, 49, 34, 21, 10, 1, 0, 131};
+
+    /* This array shows the size of the 22V10-OLMCs (AR and SP = 1) */
+    int OLMCSize22V10[12] = {9, 11, 13, 15, 17, 17, 15, 13, 11, 9, 1, 1};
+
+    switch (gal_type) {
+        case GAL16V8:
+        case GAL20V8:
+            if (actOlmc >= 8) {
+                return;
+            }
+            *start = ToOLMC[actOlmc];
+            *max = 8;
+            break;
+
+        case GAL22V10:
+            if (actOlmc >= 12) {
+                return;
+            }
+            *start = ToOLMC22V10[actOlmc];
+            *max = OLMCSize22V10[actOlmc];
+            break;
+
+        case GAL20RA10:
+            if (actOlmc >= 10) {
+                return;
+            }
+            *start = ToOLMC20RA10[actOlmc];
+            *max = 8;
+            break;
+    }
+}
+
+/**
  * set unused CLK, ARST and APRST equal 0
  */
 static int setNotUsedPins(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t* cfg) {
+
+    if (cfg->gal_type != GAL20RA10) {
+        return -1;
+    }
 
     for (int n = 0; n < cfg->num_of_olmcs; n++) {
         if (olmc[n].PinType == NOTUSED) {
@@ -317,58 +350,40 @@ static int setNotUsedPins(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t* cfg)
             return (-1);
         }
 
+        int start_row = 0;
+        int max_row = 0;
+        getStartAndMaxRowOfOlmc(cfg->gal_type, n, &start_row, &max_row);
+
         if (!olmc[n].Clock) {
-            int l = (ToOLMC20RA10[n] + 1) * cfg->num_of_col;
+            int l = (start_row + 1) * cfg->num_of_col;
 
             for (int k = l; k < l + cfg->num_of_col; k++) {
                 jedec->GALLogic[k] = 0;
             }
         }
 
-        if (olmc[n].PinType == REGOUT) {
-            if (!olmc[n].ARST) {
-                int l = (ToOLMC20RA10[n] + 2) * cfg->num_of_col;
+        if (olmc[n].PinType != REGOUT) {
+            continue;
+        }
 
-                for (int k = l; k < l + cfg->num_of_col; k++) {
-                    jedec->GALLogic[k] = 0;
-                }
+        if (!olmc[n].ARST) {
+            int l = (start_row + 2) * cfg->num_of_col;
+
+            for (int k = l; k < l + cfg->num_of_col; k++) {
+                jedec->GALLogic[k] = 0;
             }
+        }
 
-            if (!olmc[n].APRST) {
-                int l = (ToOLMC20RA10[n] + 3) * cfg->num_of_col;
+        if (!olmc[n].APRST) {
+            int l = (start_row + 3) * cfg->num_of_col;
 
-                for (int k = l; k < l + cfg->num_of_col; k++) {
-                    jedec->GALLogic[k] = 0;
-                }
+            for (int k = l; k < l + cfg->num_of_col; k++) {
+                jedec->GALLogic[k] = 0;
             }
         }
     }
 
     return 0;
-}
-
-/**
- * get first row of the  OLMC and the
- * number of rows which are available
- */
-static void getRowsOfOlmc(Config_t* cfg, int n, int* l, int* i) {
-    switch (cfg->gal_type) {
-        case GAL16V8:
-        case GAL20V8:
-            *l = ToOLMC[n];
-            *i = 8;
-            break;
-
-        case GAL22V10:
-            *l = ToOLMC22V10[n];
-            *i = OLMCSize22V10[n];
-            break;
-
-        case GAL20RA10:
-            *l = ToOLMC20RA10[n];
-            *i = 8;
-            break;
-    }
 }
 
 /**
@@ -381,8 +396,7 @@ static int setFuseMatrixOfOlmc(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t*
         if (olmc[n].PinType == NOTUSED || olmc[n].PinType == INPUT) {
             int l = 0;
             int i = 0;
-
-            getRowsOfOlmc(cfg, n, &l, &i);
+            getStartAndMaxRowOfOlmc(cfg->gal_type, n, &l, &i);
 
             l = l * cfg->num_of_col;
             int m = l + i * cfg->num_of_col;
@@ -970,14 +984,12 @@ void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
         else if (gal_type == GAL20RA10)
             fprintf(fp, "S0 = %1d", jedec->GALXOR[23 - pin]);
 
-        /* get number of rows of an OLMC */
-        int numofrows = 8;
-        if (gal_type == GAL22V10) {
-            numofrows = OLMCSize22V10[olmc];
-        }
+        int start_row = 0;
+        int max_row = 0;
+        getStartAndMaxRowOfOlmc(gal_type, olmc, &start_row, &max_row);
 
         /* print all fuses of an OLMC */
-        for (int n = 0; n < numofrows; n++) {
+        for (int n = 0; n < max_row; n++) {
             WriteRow(fp, row, num_of_col);
             row++;
         }
@@ -1013,25 +1025,24 @@ inline void WriteSpaces(FILE* fp, int numof) {
     fprintf(fp, "%*s", numof, "");
 }
 
-/******************************************************************************
-** AsmError()
-*******************************************************************************
-** input:   errornum    number of error to be printed
-**          pinnum      = 0: print "Error in line linnum:" ...
-**                      > 0: print "Pin pinnum:" ...
-**
-** output:  none
-**
-** remarks: print error messages of the GAL-assembler and free
-**          the memory allocated by the file buffer
-******************************************************************************/
+/**
+ * AsmError()
+ *
+ * input:   errornum    number of error to be printed
+ *          pinnum      = 0: print "Error in line linnum:" ...
+ *                      > 0: print "Pin pinnum:" ...
+ * output:  none
+ *
+ * remarks: print error messages of the GAL-assembler and free
+ *          the memory allocated by the file buffer
+ */
 void AsmError(int errornum, int pinnum) {
-    if (!pinnum)
-        printf("Error in line %d: ", linenum);
-    else
-        printf("Error, pin %d: ", pinnum);
+    if (!pinnum) {
+        printf("ERR: Error in line %d: ", linenum);
+        return;
+    }
 
-    printf("%s\n", AsmErrorArray[errornum]);
+    printf("ERR: Error, pin %d: %s\n", pinnum, AsmErrorArray[errornum]);
 }
 
 /**
@@ -1649,25 +1660,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
         }
 
-        start_row = max_row = 0;
-
-        switch (cfg->gal_type) { /* get first the row of the */
-            case GAL16V8:        /* OLMC and the number of   */
-            case GAL20V8:        /* rows which areavailable  */
-                start_row = ToOLMC[actOLMC];
-                max_row = 8;
-                break;
-
-            case GAL22V10:
-                start_row = ToOLMC22V10[actOLMC];
-                max_row = OLMCSize22V10[actOLMC];
-                break;
-
-            case GAL20RA10:
-                start_row = ToOLMC20RA10[actOLMC];
-                max_row = 8;
-                break;
-        }
+        start_row = 0;
+        max_row = 0;
+        getStartAndMaxRowOfOlmc(cfg->gal_type, actOLMC, &start_row, &max_row);
 
         if (*actptr != '=') {
             AsmError(14, 0);
@@ -1724,8 +1719,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (!pass) {
             if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
-                 (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 n = getOLMCnumber(cfg, &actPin);
