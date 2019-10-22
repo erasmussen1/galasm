@@ -23,9 +23,9 @@ if (BUILD_UNITTEST)
 endif()
 
 if (BUILD_SHARED)
-  set(LIBRARY_TYPE "SHARED")
+  set(BUILD_TYPE "SHARED")
 else()
-    set(LIBRARY_TYPE "STATIC")
+  set(BUILD_TYPE "STATIC")
 endif()
 
 execute_process(
@@ -46,7 +46,7 @@ execute_process(
 set(Package_maintainer "Egil Rasmussen")
 set(Package_VERSION_MAJOR 2)
 set(Package_VERSION_MINOR 1)
-set(Package_VERSION_PATCH 1.${GIT_COMMIT_HASH})
+set(Package_VERSION_PATCH 1)
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/ProjectVersion.h.in
@@ -69,8 +69,8 @@ set(flag "${flag} -Wunused-label")
 set(flag "${flag} -Wparentheses")
 set(flag "${flag} -Wreturn-type")
 set(flag "${flag} -Wno-unused-function")
-# set(flag "${flag} -Wunused-but-set-variable")
-# set(flag "${flag} -Wcast-align")
+set(flag "${flag} -Wunused-const-variable")
+set(flag "${flag} -Wcast-align")
 
 # C only flags
 set(flag_c "${flag_c} -Wmissing-prototypes")
@@ -78,8 +78,6 @@ set(flag_c "${flag_c} -Wno-shift-count-overflow")
 
 # CPP only flags
 set(flag_cpp "${flag_cpp} -Wreorder")
-#set(flag_cpp "${flag_cpp} -Wno-exceptions")
-
 
 if(RELEASE_BUILD)
   message(WARNING "  === Release build === ")
@@ -96,10 +94,9 @@ else()
   if(ENABLE_SANITIZER)
     message(WARNING "  === sanitizer is enabled === ")
     # http://clang.llvm.org/docs/AddressSanitizer.html
-    set(flag "${flag} -fsanitize=address -fno-omit-frame-pointer ")
-
-    # set(flag "${flag} -fsanitize=leak -fno-omit-frame-pointer ")
-    # set(flag "${flag} -fsanitize=thread -fno-omit-frame-pointer -fPIE -pie ")
+    # set(flag "${flag} -fsanitize=leak -fno-omit-frame-pointer")
+    # set(flag "${flag} -fsanitize=thread -fno-omit-frame-pointer")
+    set(flag "${flag} -fsanitize=address -fno-omit-frame-pointer")
   endif()
 endif()
 
@@ -131,7 +128,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${Package_maintainer})
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_VERSION_MAJOR "${Package_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${Package_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${Package_VERSION_PATCH}")
+set(CPACK_PACKAGE_VERSION_PATCH "${Package_VERSION_PATCH}.${GIT_COMMIT_HASH}")
 
 # Build a CPack driven installer package
 include (CPack)

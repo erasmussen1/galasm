@@ -25,14 +25,6 @@
 /* addieren, um die entsprechende Spalte zu erhalten */
 /* -1 heiﬂt: keine Einkopplung auf Matrix vorhanden  */
 
-
-/* A possible translation (courtesy of Babelfish)
- * These arrays indicate, into which column the appropriate pin
- * becomes linked (and/or jerk-coupled). For inverting linking
- * is to be added 1, in order to receive the appropriate column -1 hei_t
- * : no linking on matrix available.
- */
-
 /* Possible interpretation (by me)
  * These arrays maps the pins to the fuse matrix. Each integer
  * represents the number of the linked column or -1 if that pin
@@ -79,9 +71,8 @@ int PinToFuse20RA10[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
 /* are used as inputs, outputs, pins... by the assembler. */
 /* These two OLMCs are just dummy-OLMCs.                  */
 
-UBYTE PinDecNeg[24];
-UBYTE ModeErrorStr[] = "Mode  x:  Pin xx";
-// uint8_t* pinnames;
+uint8_t PinDecNeg[24];
+
 int modus;
 int linenum;
 UBYTE* actptr;

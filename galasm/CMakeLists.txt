@@ -1,6 +1,6 @@
 project(galasm2)
 
-add_library(${PROJECT_NAME} ${LIBRARY_TYPE}
+add_library(${PROJECT_NAME} ${BUILD_TYPE}
     src/galasm2.c
     src/galasm.c
     src/jedec.c

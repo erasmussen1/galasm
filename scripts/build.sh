@@ -126,8 +126,9 @@ sanitizer=" "
 fuzzer=" "
 benchmark=" "
 unittest=" "
+buildShared=" "
 
-while getopts "dcegbCsfrGphu" opt
+while getopts "dcegbCsfrlGphu" opt
 do
     case $opt in
         d)
@@ -158,6 +159,9 @@ do
             ;;
         r)
             buildType="-DRELEASE_BUILD=ON"
+            ;;
+        l)
+            buildShared="-DBUILD_SHARED=ON"
             ;;
         G)
             clearBuildFlag=1
@@ -190,7 +194,7 @@ fi
 
 makeBuildDir $clearBuildFlag
 
-[[ $generateBuildSystemFlag -ne 0 ]] && generateBuildSystem "${toolchain} ${sanitizer} ${unittest} ${benchmark} ${fuzzer}"
+[[ $generateBuildSystemFlag -ne 0 ]] && generateBuildSystem "${toolchain} ${sanitizer} ${unittest} ${benchmark} ${fuzzer} ${buildShared}"
 [[ $buildOnlyFlag -ne 0 ]] && buildApp
 [[ $runUnitTestFlag -ne 0 ]] && runUnitTest
 [[ ${buildPackageFlag} -ne 0 ]] && buildPackage
