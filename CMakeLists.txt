@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_SYSTEM_NAME Linux)
 
-project(GALasmProject)
+project(GALasmProject VERSION 2.1.2)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 14)
@@ -41,12 +41,6 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
-# Set the package version number
-set(Package_maintainer "Egil Rasmussen")
-set(Package_VERSION_MAJOR 2)
-set(Package_VERSION_MINOR 1)
-set(Package_VERSION_PATCH 1)
 
 configure_file(
   ${CMAKE_SOURCE_DIR}/ProjectVersion.h.in
@@ -122,13 +116,13 @@ endif()
 
 message(WARNING "  === Building Debian package === ")
 set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${Package_maintainer})
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Egil Rasmussen")
 # set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_SOURCE_DIR}/postinst)
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_VERSION_MAJOR "${Package_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${Package_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${Package_VERSION_PATCH}.${GIT_COMMIT_HASH}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}.${GIT_COMMIT_HASH}")
 
 # Build a CPack driven installer package
 include (CPack)

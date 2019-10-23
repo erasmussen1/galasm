@@ -621,7 +621,8 @@ void IsPinName(UBYTE* pinnames, int numofpins) {
     actPin.p_Neg = 0; /* install structure for pin */
     actPin.p_Pin = 0;
 
-    if (IsNEG(*actptr)) { /* negation? */
+    /* negation? */
+    if (IsNEG(*actptr)) {
         actptr++;
         actPin.p_Neg = 1;
     }
@@ -711,59 +712,28 @@ void Is_AR_SP(UBYTE* ptr) {
     }
 }
 
-
-/******************************************************************************
-** IsOR()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a OR
-**          0: chr is no OR
-**
-** remarks: checks whether or not chr is a OR sign or not
-******************************************************************************/
 int IsOR(char chr) {
     if (chr == '+' || chr == '#') {
-        return (1);
+        return 1;
     }
 
-    return (0);
+    return 0;
 }
 
-/******************************************************************************
-** IsAND()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a AND
-**          0: chr is no AND
-**
-** remarks: checks whether or not chr is a AND sign or not
-******************************************************************************/
 int IsAND(char chr) {
     if (chr == '*' || chr == '&') {
-        return (1);
+        return 1;
     }
 
-    return (0);
+    return 0;
 }
 
-/******************************************************************************
-** IsNEG()
-*******************************************************************************
-** input:   none
-**
-** output:  1: chr is a negation sign
-**          0: chr is no negation sign
-**
-** remarks: checks whether or not chr is a negation sign or not
-******************************************************************************/
 int IsNEG(char chr) {
     if (chr == '/' || chr == '!') {
-        return (1);
+        return 1;
     }
 
-    return (0);
+    return 0;
 }
 
 /******************************************************************************
@@ -1054,6 +1024,29 @@ static int checkSuffix(const int gal_type, const int suffix) {
         case SUFFIX_APRST:
             rc = 36; /* .APRST is not allowed */
             break;
+    }
+
+    return rc;
+}
+
+static int getSuffixFromString(char* str, int* suffix) {
+    int rc = 0;
+    *suffix = SUFFIX_NON;
+
+    if (str[0] == 'T')
+        *suffix = SUFFIX_T;
+    else if (str[0] == 'R')
+        *suffix = SUFFIX_R;
+    else if (str[0] == 'E')
+        *suffix = SUFFIX_E;
+    else if (!strcmp(&str[0], "CLK"))
+        *suffix = SUFFIX_CLK;
+    else if (!strcmp(&str[0], "ARST"))
+        *suffix = SUFFIX_ARST;
+    else if (!strcmp(&str[0], "APRST"))
+        *suffix = SUFFIX_APRST;
+    else {
+        rc = 13;
     }
 
     return rc;
@@ -1456,25 +1449,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             }
             suffix_strn[n] = '\0';
 
-            if (suffix_strn[0] == 'T')
-                suffix = SUFFIX_T;
-            else if (suffix_strn[0] == 'R')
-                suffix = SUFFIX_R;
-            else if (suffix_strn[0] == 'E')
-                suffix = SUFFIX_E;
-            else if (!strcmp(&suffix_strn[0], "CLK"))
-                suffix = SUFFIX_CLK;
-            else if (!strcmp(&suffix_strn[0], "ARST"))
-                suffix = SUFFIX_ARST;
-            else if (!strcmp(&suffix_strn[0], "APRST"))
-                suffix = SUFFIX_APRST;
-            else {
-                AsmError(13, 0);
+            int rc = getSuffixFromString(suffix_strn, &suffix);
+            if (rc) {
+                AsmError(rc, 0);
                 return (-1);
             }
 
             /* check whether suffix is allowed or not */
-            int rc = checkSuffix(cfg->gal_type, suffix);
+            rc = checkSuffix(cfg->gal_type, suffix);
             if (rc) {
                 AsmError(rc, 0);
                 return -1;
