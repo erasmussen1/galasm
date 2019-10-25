@@ -715,7 +715,7 @@ void Is_AR_SP(uint8_t* ptr) {
 }
 
 int IsOR(char chr) {
-    if (chr == '+' || chr == '#') {
+    if (chr == '+' || chr == '#' || chr == '|') {
         return 1;
     }
 
@@ -731,7 +731,7 @@ int IsAND(char chr) {
 }
 
 int IsNEG(char chr) {
-    if (chr == '/' || chr == '!') {
+    if (chr == '/' || chr == '!' || chr == '~') {
         return 1;
     }
 
