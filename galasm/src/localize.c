@@ -7,7 +7,9 @@
 ** Error strings.
 **
 ******************************************************************************/
+#include <stdio.h>
 
+#include "localize.h"
 
 char* ErrorArray[] = {
     "",
@@ -74,5 +76,36 @@ char* AsmErrorArray[] = {"error in source file found",
                          "several .CLK definitions for the same output found",
                          "several .ARST definitions for the same output found",
                          "several .APRST definitions for the same output found",
-                         "use of .CLK, .ARST, .APRST only allowed for registered outputs"
-};
+                         "use of .CLK, .ARST, .APRST only allowed for registered outputs"};
+
+/**
+ * errorReq()
+ *
+ * input:   error number
+ *
+ */
+void ErrorReq(int errornum) {
+    printf("ERR: %s\n", ErrorArray[errornum]);
+}
+
+/**
+ * AsmError()
+ *
+ * input:   errornum    number of error to be printed
+ *          pinnum      = 0: print "Error in line linnum:" ...
+ *                      > 0: print "Pin pinnum:" ...
+ * output:
+ *         errornum
+ *
+ * remarks: print error messages of the GAL-assembler and free
+ *          the memory allocated by the file buffer
+ */
+int AsmError(int errornum, int pinnum, int lineNumber) {
+    if (!pinnum) {
+        printf("ERR: Error in line %d:\n", lineNumber);
+    }
+
+    printf("ERR: Error, pin %d: %s\n", pinnum, AsmErrorArray[errornum]);
+
+    return errornum;
+}

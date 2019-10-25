@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "localize.h"
+#include "support.h"
 #include "galasm.h"
 
 
@@ -80,7 +82,7 @@ bool ReadFile(const char* filename, int filesize, uint8_t* buffer) {
  * remarks: This function does set a byte in a buffer. If the end of the buffer
  * is reached, a new buffer is added to the chained list of buffers.
  */
-int AddByte(ActBuffer_t* buff, UBYTE code) {
+int AddByte(ActBuffer_t* buff, uint8_t code) {
 
     /* is the current address within the buffer? */
     if ((buff->Entry) < (buff->BuffEnd)) {
@@ -97,8 +99,8 @@ int AddByte(ActBuffer_t* buff, UBYTE code) {
     buff->ThisBuff->Next = mybuff; /* new buffer is current buffer */
     mybuff->Prev = buff->ThisBuff; /* previous is old buffer       */
     buff->ThisBuff = mybuff;       /* current buffer is new buffer */
-    buff->Entry = (UBYTE*)(&mybuff->Entries[0]);
-    buff->BuffEnd = (UBYTE*)mybuff + (long)sizeof(Buffer_t);
+    buff->Entry = (uint8_t*)(&mybuff->Entries[0]);
+    buff->BuffEnd = (uint8_t*)mybuff + (long)sizeof(Buffer_t);
     *buff->Entry++ = code;
 
     return (0);
@@ -118,7 +120,7 @@ int AddByte(ActBuffer_t* buff, UBYTE code) {
  *          buffers.
  *
  */
-int AddString(ActBuffer_t* buff, UBYTE* strnptr) {
+int AddString(ActBuffer_t* buff, uint8_t* strnptr) {
     while (*strnptr) {
         if (AddByte(buff, *strnptr++))
             return (-1);
@@ -147,8 +149,8 @@ void IncPointer(ActBuffer_t* buff) {
 
     if (buff->Entry == buff->BuffEnd) {
         buff->ThisBuff = buff->ThisBuff->Next;
-        buff->Entry = (UBYTE*)(&buff->ThisBuff->Entries[0]);
-        buff->BuffEnd = (UBYTE*)buff->ThisBuff + (long)sizeof(Buffer_t);
+        buff->Entry = (uint8_t*)(&buff->ThisBuff->Entries[0]);
+        buff->BuffEnd = (uint8_t*)buff->ThisBuff + (long)sizeof(Buffer_t);
     }
 }
 
@@ -174,8 +176,8 @@ void DecPointer(ActBuffer_t* buff) {
     /* start of buffer reached? */
     if (buff->Entry < &buff->ThisBuff->Entries[0]) {
         buff->ThisBuff = buff->ThisBuff->Prev;
-        buff->BuffEnd = (UBYTE*)buff->ThisBuff + (long)sizeof(Buffer_t);
-        buff->Entry = (UBYTE*)((buff->BuffEnd) - 1L);
+        buff->BuffEnd = (uint8_t*)buff->ThisBuff + (long)sizeof(Buffer_t);
+        buff->Entry = (uint8_t*)((buff->BuffEnd) - 1L);
     }
 }
 
@@ -201,14 +203,4 @@ void FreeBuffer(Buffer_t* buff) {
 
         buff = nextbuff;
     }
-}
-
-/**
- * errorReq()
- *
- * input:   error number
- *
- */
-void ErrorReq(int errornum) {
-    printf("ERR: %s\n", ErrorArray[errornum]);
 }

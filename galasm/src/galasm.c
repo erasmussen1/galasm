@@ -3,8 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "localize.h"
+#include "support.h"
 #include "jedec.h"
 #include "galasm.h"
+
 
 #define SUFFIX_NON 0 /* possible suffixes */
 #define SUFFIX_T 1
@@ -75,8 +78,8 @@ uint8_t PinDecNeg[24];
 
 int modus;
 int linenum;
-UBYTE* actptr;
-UBYTE* buffend;
+uint8_t* actptr;
+uint8_t* buffend;
 
 JedecStruct_t Jedec;
 Pin_t actPin;
@@ -337,8 +340,7 @@ static int setNotUsedPins(GAL_OLMC_t* olmc, JedecStruct_t* jedec, Config_t* cfg)
 
         /* register output needs clock definition */
         if (olmc[n].PinType == REGOUT && !olmc[n].Clock) {
-            AsmError(41, n + 14);
-            return (-1);
+            return AsmError(41, n + 14, linenum);
         }
 
         int start_row = 0;
@@ -617,7 +619,7 @@ int GetNextChar(void) {
  *
  * remarks: This function tests whether actptr points to a pinname or not
  */
-void IsPinName(UBYTE* pinnames, int numofpins) {
+void IsPinName(uint8_t* pinnames, int numofpins) {
     actPin.p_Neg = 0; /* install structure for pin */
     actPin.p_Pin = 0;
 
@@ -629,7 +631,7 @@ void IsPinName(UBYTE* pinnames, int numofpins) {
 
     /* get length of pin name */
     int n = 0;
-    UBYTE* oldactptr = actptr;
+    uint8_t* oldactptr = actptr;
     while (isalpha(*actptr) || isdigit(*actptr)) {
         actptr++;
         n++;
@@ -678,7 +680,7 @@ void IsPinName(UBYTE* pinnames, int numofpins) {
 **
 ** remarks: This function tests whether actptr points to a AR or SP
 ******************************************************************************/
-void Is_AR_SP(UBYTE* ptr) {
+void Is_AR_SP(uint8_t* ptr) {
     /* install structure for pin */
     actPin.p_Neg = 0;
     actPin.p_Pin = 0;
@@ -689,7 +691,7 @@ void Is_AR_SP(UBYTE* ptr) {
     }
 
     /* get length of pin name */
-    UBYTE* oldptr = ptr;
+    uint8_t* oldptr = ptr;
 
     int n = 0;
     while (isalpha(*ptr) || isdigit(*ptr)) {
@@ -986,25 +988,6 @@ inline void WriteSpaces(FILE* fp, int numof) {
     fprintf(fp, "%*s", numof, "");
 }
 
-/**
- * AsmError()
- *
- * input:   errornum    number of error to be printed
- *          pinnum      = 0: print "Error in line linnum:" ...
- *                      > 0: print "Pin pinnum:" ...
- * output:  none
- *
- * remarks: print error messages of the GAL-assembler and free
- *          the memory allocated by the file buffer
- */
-void AsmError(int errornum, int pinnum) {
-    if (!pinnum) {
-        printf("ERR: Error in line %d:\n", linenum);        
-    }
-
-    printf("ERR: Error, pin %d: %s\n", pinnum, AsmErrorArray[errornum]);
-}
-
 static int checkSuffix(const int gal_type, const int suffix) {
     if (gal_type == GAL20RA10) {
         return 0;
@@ -1062,8 +1045,8 @@ static int getSuffixFromString(char* str, int* suffix) {
  * remarks: This function does assemble a *.pld file.
  */
 int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t* cfg) {
-    UBYTE chr;
-    UBYTE *bool_start, *oldptr;
+    uint8_t chr;
+    uint8_t *bool_start, *oldptr;
     char prevOp;
     char suffix_strn[MAX_SUFFIX_SIZE];
     int i = 0, j, k, l = 0;
@@ -1088,14 +1071,12 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     int rc = getGalTypeFromBuffer(actptr, cfg);
     if (rc) {
-        AsmError(1, 0);
-        return rc;
+        return AsmError(1, 0, linenum);
     }
 
     /*** get the leading 8 bytes of the second line as signature ***/
     if (GetNextLine()) {
-        AsmError(2, 0);
-        return (-1);
+        return AsmError(2, 0, linenum);
     }
 
     /* store signature in the JEDEC structure */
@@ -1114,8 +1095,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         n++;
 
         if (actptr > buffend) {
-            AsmError(2, 0);
-            return (-1);
+            return AsmError(2, 0, linenum);
         }
     }
 
@@ -1130,8 +1110,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     for (n = 0; n < cfg->num_of_pins; n++) {
         if (GetNextChar()) {
-            AsmError(2, 0);
-            return (-1);
+            return AsmError(2, 0, linenum);
         }
 
         m = 0;
@@ -1146,24 +1125,21 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
 
         if (!(isalpha(chr) || isdigit(chr) || IsNEG(chr))) {
-            AsmError(5, 0);
-            return (-1);
+            return AsmError(5, 0, linenum);
         }
 
         k = 0;
         while (isalpha(chr) || isdigit(chr) || IsNEG(chr)) {
             /* check position of '/' */
             if (IsNEG(chr) && k != 0) {
-                AsmError(10, 0);
-                return (-1);
+                return AsmError(10, 0, linenum);
             }
 
             k = 1;
             actptr++;
 
             if (IsNEG(chr) && (!(isalpha(*actptr) || isdigit(*actptr)))) {
-                AsmError(3, 0);
-                return (-1);
+                return AsmError(3, 0, linenum);
             }
 
             *(pinnames + n * 10 + m) = chr;
@@ -1172,8 +1148,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             chr = *actptr;
 
             if (m == max_chr) {
-                AsmError(4, 0);
-                return (-1);
+                return AsmError(4, 0, linenum);
             }
         }
         *(pinnames + n * 10 + m) = '\0';
@@ -1192,8 +1167,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 }
 
                 if (!strcmp((char*)(pinnames + l * 10 + i), (char*)(pinnames + n * 10 + j))) {
-                    AsmError(9, 0); /* pin name defined twice */
-                    return (-1);
+                    return AsmError(9, 0, linenum); /* pin name defined twice */
                 }
             }
         }
@@ -1201,30 +1175,26 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         /* is GND at the GND-pin? */
         if (!strcmp((char*)(pinnames + n * 10), "GND")) {
             if (n + 1 != cfg->num_of_pins / 2) {
-                AsmError(6, 0);
-                return (-1);
+                return AsmError(6, 0, linenum);
             }
         }
 
         if (n + 1 == cfg->num_of_pins / 2) {
             if (strcmp((char*)(pinnames + n * 10), "GND")) {
-                AsmError(8, 0);
-                return (-1);
+                return AsmError(8, 0, linenum);
             }
         }
 
         /* is VCC at the VCC pin? */
         if (!strcmp((char*)(pinnames + n * 10), "VCC")) {
             if (n + 1 != cfg->num_of_pins) {
-                AsmError(6, 0);
-                return (-1);
+                return AsmError(6, 0, linenum);
             }
         }
 
         if (n + 1 == cfg->num_of_pins) {
             if (strcmp((char*)(pinnames + n * 10), "VCC")) {
-                AsmError(7, 0);
-                return (-1);
+                return AsmError(7, 0, linenum);
             }
         }
 
@@ -1232,13 +1202,11 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         /* they are not allowed in the pin declaration */
         if (cfg->gal_type == GAL22V10) {
             if (!strcmp((char*)(pinnames + n * 10), "AR")) {
-                AsmError(18, 0);
-                return (-1);
+                return AsmError(18, 0, linenum);
             }
 
             if (!strcmp((char*)(pinnames + n * 10), "SP")) {
-                AsmError(18, 0);
-                return (-1);
+                return AsmError(18, 0, linenum);
             }
         }
     }
@@ -1255,13 +1223,11 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
      *  then provided.
      */
     if (GetNextChar()) {
-        AsmError(2, 0);
-        return (-1);
+        return AsmError(2, 0, linenum);
     }
 
     if (!strncmp((char*)actptr, "DESCRIPTION", (size_t)11)) {
-        AsmError(33, 0);
-        return (-1);
+        return AsmError(33, 0, linenum);
     }
 
     bool_start = actptr;    /* set pointer to the beginning of    */
@@ -1421,8 +1387,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
     loop1:
         if (GetNextChar()) {
-            AsmError(2, 0);
-            return (-1);
+            return AsmError(2, 0, linenum);
         }
 
         suffix = SUFFIX_NON;
@@ -1432,8 +1397,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
             /* no suffix allowed at AR and SP */
             if (cfg->gal_type == GAL22V10 && (actPin.p_Pin == 24 || actPin.p_Pin == 25)) {
-                AsmError(39, 0);
-                return (-1);
+                return AsmError(39, 0, linenum);
             }
 
             /* copy suffix string into suffix array */
@@ -1442,28 +1406,24 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 if (n < MAX_SUFFIX_SIZE)
                     suffix_strn[n++] = *actptr++;
                 else {
-                    AsmError(13, 0);
-                    return (-1);
+                    return AsmError(13, 0, linenum);
                 }
             }
             suffix_strn[n] = '\0';
 
             int rc = getSuffixFromString(suffix_strn, &suffix);
             if (rc) {
-                AsmError(rc, 0);
-                return (-1);
+                return AsmError(rc, 0, linenum);
             }
 
             /* check whether suffix is allowed or not */
             rc = checkSuffix(cfg->gal_type, suffix);
             if (rc) {
-                AsmError(rc, 0);
-                return -1;
+                return AsmError(rc, 0, linenum);
             }
 
             if (GetNextChar()) {
-                AsmError(2, 0);
-                return (-1);
+                return AsmError(2, 0, linenum);
             }
         }
 
@@ -1518,12 +1478,10 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         } else {
                             /* AR or SP is defined twice */
                             if (cfg->gal_type == GAL22V10 && (n == 10 || n == 11)) {
-                                AsmError(40, 0);
-                                return (-1);
+                                return AsmError(40, 0, linenum);
                             } else {
                                 /* pin is defined twice as output */
-                                AsmError(16, 0);
-                                return (-1);
+                                return AsmError(16, 0, linenum);
                             }
                         }
                         break;
@@ -1531,14 +1489,12 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                     case SUFFIX_E:
                         /* negation of the trisate control is not allowed */
                         if (actPin.p_Neg) {
-                            AsmError(19, 0);
-                            return (-1);
+                            return AsmError(19, 0, linenum);
                         }
 
                         /* tri. control twice? yes, then error */
                         if (OLMC[n].TriCon) {
-                            AsmError(22, 0);
-                            return (-1);
+                            return AsmError(22, 0, linenum);
                         }
 
                         /* set the flag that there is a tri. control equation */
@@ -1546,99 +1502,88 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                         /* the sequence must be output followed by the tri. control */
                         if (!OLMC[n].PinType || OLMC[n].PinType == INPUT) {
-                            AsmError(17, 0);
-                            return (-1);
+                            return AsmError(17, 0, linenum);
                         }
 
                         /* GAL16V8/20V8: tristate control for reg. output is not allowed */
                         if (OLMC[n].PinType == REGOUT &&
                             (cfg->gal_type == GAL16V8 || cfg->gal_type == GAL20V8)) {
-                            AsmError(23, 0);
-                            return (-1);
+                            return AsmError(23, 0, linenum);
                         }
 
                         /* no tristate .T? then error  */
                         if (OLMC[n].PinType == COM_TRI_OUT) {
-                            AsmError(24, 0);
-                            return (-1);
+                            return AsmError(24, 0, linenum);
                         }
                         break;
 
                     case SUFFIX_CLK:
                         if (actPin.p_Neg) { /* negation of the .CLK control is not allowed */
-                            AsmError(19, 0);
-                            return (-1);
+                            return AsmError(19, 0, linenum);
                         }
 
                         if (OLMC[n].PinType == NOTUSED) {
-                            AsmError(42, 0); /* sequence must be: output */
-                            return (-1);     /* def., .CLK definition */
+                            /* sequence must be: output def., .CLK definition */
+                            return AsmError(42, 0, linenum);
                         }
 
-                        if (OLMC[n].Clock) { /* is .CLK defined twice? */
-                            AsmError(45, 0); /* yes, then error */
-                            return (-1);
+                        if (OLMC[n].Clock) {                 /* is .CLK defined twice? */
+                            return AsmError(45, 0, linenum); /* yes, then error */
                         }
 
-                        OLMC[n].Clock = 1; /* set flag that there is */
-                                           /* a .CLK equation        */
+                        OLMC[n].Clock = 1; /* set flag that there is a .CLK equation */
                         if (OLMC[n].PinType != REGOUT) {
-                            AsmError(48, 0); /* no .CLK allowed when     */
-                            return (-1);     /* output is not registered */
+                            /* no .CLK allowed when output is not registered */
+                            return AsmError(48, 0, linenum);
                         }
                         break;
 
                     case SUFFIX_ARST:
-                        if (actPin.p_Neg) {  /* negation of the .ARST  */
-                            AsmError(19, 0); /* control is not allowed */
-                            return (-1);
+                        if (actPin.p_Neg) {                  /* negation of the .ARST  */
+                            return AsmError(19, 0, linenum); /* control is not allowed */
                         }
 
                         if (OLMC[n].PinType == NOTUSED) {
-                            AsmError(43, 0); /* sequence must be: output */
-                            return (-1);     /* def., .ARST definition   */
+                            /* sequence must be: output def., .ARST definition */
+                            return AsmError(43, 0, linenum);
                         }
 
-                        if (OLMC[n].ARST) {  /* is .ARST defined twice? */
-                            AsmError(46, 0); /* yes, then error         */
-                            return (-1);
+                        if (OLMC[n].ARST) { /* is .ARST defined twice? */
+                            return AsmError(46, 0, linenum);
                         }
 
-                        OLMC[n].ARST = 1; /* set flag that there is */
-                                          /* a .ARST equation       */
+                        OLMC[n].ARST = 1; /* set flag that there is a .ARST equation */
                         if (OLMC[n].PinType != REGOUT) {
-                            AsmError(48, 0); /* no .CLK allowed when     */
-                            return (-1);     /* output is not registered */
+                            /* no .CLK allowed when output is not registered */
+                            return AsmError(48, 0, linenum);
                         }
                         break;
 
                     case SUFFIX_APRST:
-                        if (actPin.p_Neg) {  /* negation of the .APRST */
-                            AsmError(19, 0); /* control is not allowed */
-                            return (-1);
+                        /* negation of the .APRST control is not allowed */
+                        if (actPin.p_Neg) {
+                            return AsmError(19, 0, linenum); /* control is not allowed */
                         }
 
                         if (OLMC[n].PinType == NOTUSED) {
-                            AsmError(44, 0); /* sequence must be: output */
-                            return (-1);     /* def., .APRST definition  */
+                            /* sequence must be: output def., .APRST definition  */
+                            return AsmError(44, 0, linenum);
                         }
 
                         if (OLMC[n].APRST) { /* is .APRST defined twice? */
-                            AsmError(47, 0); /* yes, then error          */
-                            return (-1);
+                            return AsmError(47, 0, linenum);
                         }
 
                         OLMC[n].APRST = 1; /* set flag that there is */
                                            /* a .APRST equation      */
                         if (OLMC[n].PinType != REGOUT) {
-                            AsmError(48, 0); /* no .CLK allowed when     */
-                            return (-1);     /* output is not registered */
+                            /* no .CLK allowed when output is not registered */
+                            return AsmError(48, 0, linenum);
                         }
                         break;
                 }
             } else {
-                AsmError(15, 0); /* pin can't be programmed */
-                return (-1);     /* as output               */
+                return AsmError(15, 0, linenum); /* pin can't be programmed as output */
             }
         }
 
@@ -1647,16 +1592,14 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         getStartAndMaxRowOfOlmc(cfg->gal_type, actOLMC, &start_row, &max_row);
 
         if (*actptr != '=') {
-            AsmError(14, 0);
-            return (-1);
+            return AsmError(14, 0, linenum);
         }
 
     loop2:
         actptr++;
 
         if (GetNextChar()) {
-            AsmError(2, 0);
-            return (-1);
+            return AsmError(2, 0, linenum);
         }
 
         oldptr = actptr; /* save pointer */
@@ -1668,19 +1611,16 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             Is_AR_SP(oldptr);
 
             if (actPin.p_Pin) {
-                AsmError(31, 0);
-                return (-1);
+                return AsmError(31, 0, linenum);
             }
         }
 
         if (!actPin.p_Pin) {
-            AsmError(11, 0);
-            return (-1);
+            return AsmError(11, 0, linenum);
         }
 
-        if (actPin.p_Pin == NC_PIN) { /* NC used as pin name? */
-            AsmError(12, 0);          /* yes, then error */
-            return (-1);
+        if (actPin.p_Pin == NC_PIN) {        /* NC used as pin name? */
+            return AsmError(12, 0, linenum); /* yes, then error */
         }
 
         if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10)))) {
@@ -1690,8 +1630,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         oldline = linenum;
 
         if (GetNextChar()) {
-            AsmError(2, 0);
-            return (-1);
+            return AsmError(2, 0, linenum);
         }
 
         newline = linenum;
@@ -1701,7 +1640,8 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         if (!pass) {
             if (((cfg->gal_type == GAL16V8) && (actPin.p_Pin >= 12) && (actPin.p_Pin <= 19)) ||
                 ((cfg->gal_type == GAL20V8) && (actPin.p_Pin >= 15) && (actPin.p_Pin <= 22)) ||
-                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= DUMMY_OLMC12)) ||
+                ((cfg->gal_type == GAL22V10) && (actPin.p_Pin >= 14) &&
+                 (actPin.p_Pin <= DUMMY_OLMC12)) ||
                 ((cfg->gal_type == GAL20RA10) && (actPin.p_Pin >= 14) && (actPin.p_Pin <= 23))) {
 
                 n = getOLMCnumber(cfg, &actPin);
@@ -1727,26 +1667,22 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 /* valuation of mode 2? */
                 if (modus == MODE2) {
                     if (cfg->gal_type == GAL16V8 && (pin_num == 12 || pin_num == 19)) {
-                        AsmError(20, 0);
-                        return (-1);
+                        return AsmError(20, 0, linenum);
                     }
 
                     if (cfg->gal_type == GAL20V8 && (pin_num == 15 || pin_num == 22)) {
-                        AsmError(21, 0);
-                        return (-1);
+                        return AsmError(21, 0, linenum);
                     }
                 }
 
                 /* valuation of mode 3? */
                 if (modus == MODE3) {
                     if (cfg->gal_type == GAL16V8 && (pin_num == 1 || pin_num == 11)) {
-                        AsmError(26, 0);
-                        return (-1);
+                        return AsmError(26, 0, linenum);
                     }
 
                     if (cfg->gal_type == GAL20V8 && (pin_num == 1 || pin_num == 13)) {
-                        AsmError(27, 0);
-                        return (-1);
+                        return AsmError(27, 0, linenum);
                     }
                 }
             }
@@ -1754,13 +1690,11 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             /* valuation of 20RA10? */
             if (cfg->gal_type == GAL20RA10) {
                 if (pin_num == 1) { /* pin 1 is reserved for /PL (preload) */
-                    AsmError(37, 0);
-                    return (-1);
+                    return AsmError(37, 0, linenum);
                 }
 
-                if (pin_num == 13) { /* pin 13 is reserved for */
-                    AsmError(38, 0); /* /OE (output enable)    */
-                    return (-1);
+                if (pin_num == 13) {                 /* pin 13 is reserved for */
+                    return AsmError(38, 0, linenum); /* /OE (output enable)    */
                 }
             }
 
@@ -1769,8 +1703,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
                 /* /VCC and /GND are not allowed */
                 if (actPin.p_Neg) {
-                    AsmError(25, 0);
-                    return (-1);
+                    return AsmError(25, 0, linenum);
                 }
 
                 if (!prevOp && !IsAND(*actptr) && !IsOR(*actptr)) {
@@ -1783,17 +1716,16 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         }
                     }
                 } else {
-                    AsmError(28, 0);
-                    return (-1);
+                    return AsmError(28, 0, linenum);
                 }
             } else {
                 if (suffix == SUFFIX_E || suffix == SUFFIX_CLK || suffix == SUFFIX_ARST ||
                     suffix == SUFFIX_APRST ||
                     (cfg->gal_type == GAL22V10 && (actOLMC == 10 || actOLMC == 11))) {
 
-                    if (IsOR(prevOp)) {  /* max. one product term   */
-                        AsmError(29, 0); /* for CLK, ARST, APRST, E */
-                        return (-1);     /* and 22V10: AR, SP       */
+                    if (IsOR(prevOp)) { /* max. one product term   */
+                        return AsmError(
+                            29, 0, linenum); /* for CLK, ARST, APRST, E and 22V10: AR, SP */
                     }
 
                     SetAND(start_row + row_offset, pin_num, actPin.p_Neg, &Jedec, cfg);
@@ -1803,8 +1735,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                         row_offset++;
 
                         if (row_offset == max_row) { /* too many ORs?*/
-                            AsmError(30, 0);
-                            return (-1);
+                            return AsmError(30, 0, linenum);
                         }
                     }
                     /* set ANDs */
@@ -1846,19 +1777,16 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
                 Is_AR_SP(oldptr);                             /* check whether name */
                                                               /* is AR or SP        */
                 if (actPin.p_Pin && actPin.p_Neg) {           /* but no negation of */
-                    AsmError(32, 0);                          /* AR or SP           */
-                    return (-1);
+                    return AsmError(32, 0, linenum);          /* AR or SP           */
                 }
             }
 
             if (!actPin.p_Pin) {
-                AsmError(11, 0);
-                return (-1);
+                return AsmError(11, 0, linenum);
             }
 
             if (actPin.p_Pin == NC_PIN) {
-                AsmError(12, 0);
-                return (-1);
+                return AsmError(12, 0, linenum);
             }
 
             if (IsNEG(*(pinnames + (long)((actPin.p_Pin - 1) * 10)))) {

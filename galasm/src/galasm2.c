@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include <galasm/galasm2.h>
-
+#include "support.h"
 #include "galasm.h"
 
 
@@ -30,14 +30,12 @@ int assemblePldFile(const char* filename,
 
     unsigned char* buffer = (unsigned char*)malloc(fileSize);
     if (!buffer) {
-        ErrorReq(2);
         return -1;
     }
 
     bool ok = ReadFile(filename, fileSize, buffer);
     if (!ok) {
         free(buffer);
-        ErrorReq(3);
         return -1;
     }
 

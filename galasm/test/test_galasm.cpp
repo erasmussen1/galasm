@@ -191,4 +191,3 @@ TEST_F(GalasmFixture, SevenSegment_PLD) {
     rc = assemblePldMemory("7seg_out.pld", v.data(), v.size(), 1, 1, 1, 0, 1, false, false);
     EXPECT_TRUE(!rc);
 }
-

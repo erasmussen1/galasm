@@ -11,11 +11,45 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "localize.h"
+#include "support.h"
 #include "jedec.h"
 #include "galasm.h"
 
+/*
+ * DHH - 24-Oct-2012 This function works like fwrite,
+ * but outputs newlines as CRLF.
+ *
+ * My GAL programmer (Wellon VP-190) doesn't like JEDEC files
+ * with bare newlines in them.
+ *
+ * ER - 24-Oct-2019
+ * My GAL programmer (XGecu Pro TL866II and minipro SW
+ * on linux) needs unix style newline. (I have added a switch)
+ */
+static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out, bool unixNewline) {
+    unsigned char* buf = (unsigned char*)buf_;
 
-static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out, bool unixNewline);
+    if (unixNewline) {
+        for (size_t i = 0; i < size * nmemb; i++) {
+            unsigned char byte = buf[i];
+            fwrite(&byte, 1, 1, out);
+        }
+
+        return nmemb;
+    }
+
+    for (size_t i = 0; i < size * nmemb; i++) {
+        unsigned char byte = buf[i];
+        if (byte == '\n') {
+            fwrite("\r\n", 1, 2, out);
+            continue;
+        }
+        fwrite(&byte, 1, 1, out);
+    }
+
+    return nmemb;
+}
 
 void initJedec(JedecStruct_t* jedec) {
     memset(jedec, 0x00, sizeof(*jedec));
@@ -215,7 +249,7 @@ static void getChipConfiguration(Config_t* cfg, int* MaxFuseAdr, int* RowSize, i
 ** remarks: generates the JEDEC file in a ram buffer
 ******************************************************************************/
 int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
-    UBYTE mystrng[255];
+    uint8_t mystrng[255];
     ActBuffer_t buff2;
     int n, m, bitnum, bitnum2, flag;
 
@@ -228,69 +262,69 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
     buff2 = buff;
 
     if (!cfg->JedecFuseChk) {
-        if (AddString(&buff, (UBYTE*)"\2\n")) { /* <STX> */
+        if (AddString(&buff, (uint8_t*)"\2\n")) { /* <STX> */
             return (-1);
         }
     }
 
     /*** make header of JEDEC file ***/
-    if (AddString(&buff, (UBYTE*)"Used Program:   GALasm 2.1\n"))
+    if (AddString(&buff, (uint8_t*)"Used Program:   GALasm 2.1\n"))
         return (-1);
 
-    if (AddString(&buff, (UBYTE*)"GAL-Assembler:  GALasm 2.1\n"))
+    if (AddString(&buff, (uint8_t*)"GAL-Assembler:  GALasm 2.1\n"))
         return (-1);
 
     int galtype = cfg->gal_type;
     if (galtype == GAL16V8) {
-        if (AddString(&buff, (UBYTE*)"Device:         GAL16V8\n\n"))
+        if (AddString(&buff, (uint8_t*)"Device:         GAL16V8\n\n"))
             return (-1);
     }
 
     if (galtype == GAL20V8) {
-        if (AddString(&buff, (UBYTE*)"Device:         GAL20V8\n\n"))
+        if (AddString(&buff, (uint8_t*)"Device:         GAL20V8\n\n"))
             return (-1);
     }
 
     if (galtype == GAL20RA10) {
-        if (AddString(&buff, (UBYTE*)"Device:         GAL20RA10\n\n"))
+        if (AddString(&buff, (uint8_t*)"Device:         GAL20RA10\n\n"))
             return (-1);
     }
 
     if (galtype == GAL22V10) {
-        if (AddString(&buff, (UBYTE*)"Device:         GAL22V10\n\n"))
+        if (AddString(&buff, (uint8_t*)"Device:         GAL22V10\n\n"))
             return (-1);
     }
 
     /* Default value of fuses */
-    if (AddString(&buff, (UBYTE*)"*F0\n")) {
+    if (AddString(&buff, (uint8_t*)"*F0\n")) {
         return (-1);
     }
 
     /* Security-Bit */
     if (cfg->JedecSecBit) {
-        if (AddString(&buff, (UBYTE*)"*G1\n")) {
+        if (AddString(&buff, (uint8_t*)"*G1\n")) {
             return (-1);
         }
     } else {
-        if (AddString(&buff, (UBYTE*)"*G0\n")) {
+        if (AddString(&buff, (uint8_t*)"*G0\n")) {
             return (-1);
         }
     }
 
     if (galtype == GAL16V8) /* number of fuses */
-        if (AddString(&buff, (UBYTE*)"*QF2194\n"))
+        if (AddString(&buff, (uint8_t*)"*QF2194\n"))
             return (-1);
 
     if (galtype == GAL20V8)
-        if (AddString(&buff, (UBYTE*)"*QF2706\n"))
+        if (AddString(&buff, (uint8_t*)"*QF2706\n"))
             return (-1);
 
     if (galtype == GAL20RA10)
-        if (AddString(&buff, (UBYTE*)"*QF3274\n"))
+        if (AddString(&buff, (uint8_t*)"*QF3274\n"))
             return (-1);
 
     if (galtype == GAL22V10)
-        if (AddString(&buff, (UBYTE*)"*QF5892\n"))
+        if (AddString(&buff, (uint8_t*)"*QF5892\n"))
             return (-1);
 
     /*** make fuse-matrix ***/
@@ -313,7 +347,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
         if (flag) {
             sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
 
-            if (AddString(&buff, (UBYTE*)&mystrng[0]))
+            if (AddString(&buff, (uint8_t*)&mystrng[0]))
                 return (-1);
 
             for (n = 0; n <= MaxFuseAdr; n++) {
@@ -322,7 +356,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
                 bitnum++;
             }
 
-            if (AddByte(&buff, (UBYTE)'\n'))
+            if (AddByte(&buff, (uint8_t)'\n'))
                 return (-1);
         } else {
             bitnum = bitnum2;
@@ -335,7 +369,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
 
     /*** XOR-Bits ***/
     sprintf((char*)&mystrng[0], "*L%04d ", bitnum); /* add fuse adr. */
-    if (AddString(&buff, (UBYTE*)&mystrng[0]))
+    if (AddString(&buff, (uint8_t*)&mystrng[0]))
         return (-1);
 
     for (n = 0; n < XORSize; n++) {
@@ -350,14 +384,14 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
         }
     }
 
-    if (AddByte(&buff, (UBYTE)'\n')) {
+    if (AddByte(&buff, (uint8_t)'\n')) {
         return (-1);
     }
 
     /*** Signature ***/
     sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
 
-    if (AddString(&buff, (UBYTE*)&mystrng[0]))
+    if (AddString(&buff, (uint8_t*)&mystrng[0]))
         return (-1);
 
     for (n = 0; n < SIG_SIZE; n++) {
@@ -367,7 +401,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
         bitnum++;
     }
 
-    if (AddByte(&buff, (UBYTE)'\n'))
+    if (AddByte(&buff, (uint8_t)'\n'))
         return (-1);
 
 
@@ -375,7 +409,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
 
         /*** AC1-Bits ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
-        if (AddString(&buff, (UBYTE*)&mystrng[0]))
+        if (AddString(&buff, (uint8_t*)&mystrng[0]))
             return (-1);
 
         for (n = 0; n < AC1_SIZE; n++) {
@@ -384,13 +418,13 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
             bitnum++;
         }
 
-        if (AddByte(&buff, (UBYTE)'\n'))
+        if (AddByte(&buff, (uint8_t)'\n'))
             return (-1);
 
 
         /*** PT-Bits ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
-        if (AddString(&buff, (UBYTE*)&mystrng[0]))
+        if (AddString(&buff, (uint8_t*)&mystrng[0]))
             return (-1);
 
         for (n = 0; n < PT_SIZE; n++) {
@@ -399,20 +433,20 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
             bitnum++;
         }
 
-        if (AddByte(&buff, (UBYTE)'\n')) {
+        if (AddByte(&buff, (uint8_t)'\n')) {
             return (-1);
         }
 
         /*** SYN-Bit ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
 
-        if (AddString(&buff, (UBYTE*)&mystrng[0]))
+        if (AddString(&buff, (uint8_t*)&mystrng[0]))
             return (-1);
 
         if (AddByte(&buff, (uint8_t)(jedec->GALSYN + '0')))
             return (-1);
 
-        if (AddByte(&buff, (UBYTE)'\n'))
+        if (AddByte(&buff, (uint8_t)'\n'))
             return (-1);
 
         bitnum++;
@@ -420,13 +454,13 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
         /*** AC0-Bit ***/
         sprintf((char*)&mystrng[0], "*L%04d ", bitnum);
 
-        if (AddString(&buff, (UBYTE*)&mystrng[0]))
+        if (AddString(&buff, (uint8_t*)&mystrng[0]))
             return (-1);
 
         if (AddByte(&buff, (uint8_t)(jedec->GALAC0 + '0')))
             return (-1);
 
-        if (AddByte(&buff, (UBYTE)'\n'))
+        if (AddByte(&buff, (uint8_t)'\n'))
             return (-1);
     }
 
@@ -434,23 +468,23 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
     // if (cfg->JedecFuseChk) {
     sprintf((char*)&mystrng[0], "*C%04x\n", FuseChecksum(jedec, cfg->gal_type));
 
-    if (AddString(&buff, (UBYTE*)&mystrng[0])) {
+    if (AddString(&buff, (uint8_t*)&mystrng[0])) {
         return (-1);
     }
     // }
 
-    if (AddString(&buff, (UBYTE*)"*\n")) { /* closing '*' */
+    if (AddString(&buff, (uint8_t*)"*\n")) { /* closing '*' */
         return (-1);
     }
 
     if (!cfg->JedecFuseChk) {
-        if (AddByte(&buff, (UBYTE)0x3)) { /* <ETX> */
+        if (AddByte(&buff, (uint8_t)0x3)) { /* <ETX> */
             return (-1);
         }
 
         sprintf((char*)&mystrng[0], "%04x\n", FileChecksum(buff2));
 
-        if (AddString(&buff, (UBYTE*)&mystrng[0])) {
+        if (AddString(&buff, (uint8_t*)&mystrng[0])) {
             return (-1);
         }
     }
@@ -471,7 +505,7 @@ int MakeJedecBuff(JedecStruct_t* jedec, Config_t* cfg, ActBuffer_t buff) {
 void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
     ActBuffer_t mybuff;
     Buffer_t* first_buff;
-    UBYTE *filebuffer, *filebuffer2;
+    uint8_t *filebuffer, *filebuffer2;
 
     if (!(first_buff = (Buffer_t*)calloc(sizeof(Buffer_t), 1))) {
         ErrorReq(2); /* out of memory? */
@@ -479,8 +513,8 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
     }
 
     mybuff.ThisBuff = first_buff;
-    mybuff.Entry = (UBYTE*)(&first_buff->Entries[0]);
-    mybuff.BuffEnd = (UBYTE*)first_buff + (long)sizeof(Buffer_t);
+    mybuff.Entry = (uint8_t*)(&first_buff->Entries[0]);
+    mybuff.BuffEnd = (uint8_t*)first_buff + (long)sizeof(Buffer_t);
 
     /* put JEDEC in ram-buffer */
     if (MakeJedecBuff(jedec, cfg, mybuff)) {
@@ -521,46 +555,11 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
         }
 
         mybuff.ThisBuff = mybuff.ThisBuff->Next;
-        mybuff.Entry = (UBYTE*)(&mybuff.ThisBuff->Entries[0]);
-        mybuff.BuffEnd = (UBYTE*)mybuff.ThisBuff + (long)sizeof(Buffer_t);
+        mybuff.Entry = (uint8_t*)(&mybuff.ThisBuff->Entries[0]);
+        mybuff.BuffEnd = (uint8_t*)mybuff.ThisBuff + (long)sizeof(Buffer_t);
     }
 
     fclose(fp);
 
     FreeBuffer(first_buff);
-}
-
-/*
- * DHH - 24-Oct-2012 This function works like fwrite,
- * but outputs newlines as CRLF.
- *
- * My GAL programmer (Wellon VP-190) doesn't like JEDEC files
- * with bare newlines in them.
- *
- * ER - 24-Oct-2019
- * My GAL programmer (XGecu Pro TL866II and minipro SW
- * on linux) needs unix style newline. (I have added a switch)
- */
-static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out, bool unixNewline) {
-    unsigned char* buf = (unsigned char*)buf_;
-
-    if (unixNewline) {
-        for (size_t i = 0; i < size * nmemb; i++) {
-            unsigned char byte = buf[i];
-            fwrite(&byte, 1, 1, out);
-        }
-
-        return nmemb;
-    }
-
-    for (size_t i = 0; i < size * nmemb; i++) {
-        unsigned char byte = buf[i];
-        if (byte == '\n') {
-            fwrite("\r\n", 1, 2, out);
-            continue;
-        }
-        fwrite(&byte, 1, 1, out);
-    }
-
-    return nmemb;
 }

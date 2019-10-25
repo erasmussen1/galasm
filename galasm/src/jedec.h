@@ -22,28 +22,6 @@ typedef struct {
     uint8_t GALS1[10];      /* S1 bits for 22V10       */
 } JedecStruct_t;
 
-#define ENTRY_SIZE 256 /* number of entries per buffer */
-
-/**
- * this structure is used to store some datas in a chained list
- * e.g. the coded equations for the optimizer
- */
-typedef struct Buffer_t {
-    struct Buffer_t* Next;
-    struct Buffer_t* Prev;
-    uint8_t Entries[ENTRY_SIZE]; /* data area */
-} Buffer_t;
-
-/**
- * used to store results and
- * parameters of functions
- * which deal with chained lists
- */
-typedef struct {
-    Buffer_t* ThisBuff; /* pointer to current buffer */
-    uint8_t* Entry;     /* pointer to data area      */
-    uint8_t* BuffEnd;   /* pointer to the end of the buffer */
-} ActBuffer_t;
 
 int FileChecksum(ActBuffer_t buff);
 void initJedec(JedecStruct_t* jedec);

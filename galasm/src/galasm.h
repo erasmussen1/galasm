@@ -122,9 +122,6 @@
 
 #define SIZE_OF_EQUASTRING 80
 
-typedef signed char BYTE;    /* signed 8-bit quantity */
-typedef unsigned char UBYTE; /* unsigned 8-bit quantity */
-
 
 /******************************** structures *********************************/
 
@@ -145,10 +142,6 @@ typedef struct {
     int8_t FeedBack; /* is there a feedback?        */
 } GAL_OLMC_t;
 
-/********************************** globals **********************************/
-extern char* ErrorArray[];
-extern char* AsmErrorArray[];
-
 /*************************** function declartions ****************************/
 
 int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t* cfg);
@@ -156,10 +149,10 @@ int GetBaseName(const char* filename, const char* ext, char* newfilename);
 
 /* GALasm.c */
 void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg);
-void IsPinName(UBYTE* pinnames, int numofpins);
+void IsPinName(uint8_t* pinnames, int numofpins);
 int GetNextChar(void);
 int GetNextLine(void);
-void AsmError(int errornum, int pinnum);
+
 void WriteChipFile(char* filename, Config_t* cfg);
 void WritePinFile(char* filename, Config_t* cfg);
 void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg);
@@ -168,15 +161,5 @@ void WriteRow(FILE* fp, int row, int num_of_col);
 int IsOR(char);
 int IsAND(char);
 int IsNEG(char);
-void Is_AR_SP(UBYTE* ptr);
+void Is_AR_SP(uint8_t* ptr);
 int GetPinNum(int gal_type);
-
-/* support.c */
-int FileSize(const char* filename);
-bool ReadFile(const char* filename, int filesize, UBYTE* filebuff);
-int AddByte(ActBuffer_t* buff, UBYTE code);
-int AddString(ActBuffer_t* buff, UBYTE* strnptr);
-void IncPointer(ActBuffer_t* buff);
-void DecPointer(ActBuffer_t* buff);
-void FreeBuffer(Buffer_t* buff);
-void ErrorReq(int errornum);

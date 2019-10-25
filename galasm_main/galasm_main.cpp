@@ -116,8 +116,8 @@ int main(int argc, char* argv[]) {
                              (int)opts.JedecSecBit,
                              (int)opts.JedecFuseChk,
                              false,
-                             false // TODO - add option
-                             );
+                             false  // TODO - add option
+    );
     if (rc) {
         std::cout << "Assembling failed.\n";
         return rc;
