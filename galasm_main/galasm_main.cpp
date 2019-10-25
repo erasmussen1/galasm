@@ -28,8 +28,8 @@ struct Options {
 };
 
 static void printVersion(void) {
-    std::cout << "GALasm2, Portable GAL Assembler\n"
-                 "Original sources Copyright (c) 1991-96 Christian Habermann\n"
+    std::cout << "GALasmII, Portable GAL Assembler\n"
+                 "Original sources base of Christian Habermann's code\n"
                  "  Version " Package_VERSION_MAJOR "." Package_VERSION_MINOR
                  "." Package_VERSION_PATCH
                  "\n"
