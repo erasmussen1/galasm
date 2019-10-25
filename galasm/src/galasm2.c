@@ -6,14 +6,20 @@
 #include "galasm.h"
 
 
+/**
+ * This is called from main
+ */
 int assemblePldFile(const char* filename,
                     int GenFuse,
                     int GenChip,
                     int GenPin,
                     int JedecSecBit,
-                    int JedecFuseChk) {  // This version is called from main
+                    int JedecFuseChk,
+                    bool verbose,
+                    bool unixNewline) {
     Config_t cfg;
-    cfg.verbose = true;
+    cfg.verbose = verbose;
+    cfg.unixNewline = unixNewline;
     cfg.GenFuse = GenFuse;
     cfg.GenChip = GenChip;
     cfg.GenPin = GenPin;
@@ -49,9 +55,11 @@ int assemblePldMemory(const char* filename,
                       int GenPin,
                       int JedecSecBit,
                       int JedecFuseChk,
-                      bool verbose) {
+                      bool verbose,
+                      bool unixNewline) {
     Config_t cfg;
     cfg.verbose = verbose;
+    cfg.unixNewline = unixNewline;
     cfg.GenFuse = GenFuse;
     cfg.GenChip = GenChip;
     cfg.GenPin = GenPin;

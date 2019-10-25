@@ -114,7 +114,10 @@ int main(int argc, char* argv[]) {
                              (int)opts.GenChip,
                              (int)opts.GenPin,
                              (int)opts.JedecSecBit,
-                             (int)opts.JedecFuseChk);
+                             (int)opts.JedecFuseChk,
+                             false,
+                             false // TODO - add option
+                             );
     if (rc) {
         std::cout << "Assembling failed.\n";
         return rc;

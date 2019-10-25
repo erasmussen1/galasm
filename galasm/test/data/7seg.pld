@@ -1,0 +1,18 @@
+GAL22V10
+22V10
+
+Clock D1  C1  B1  A1  D2  C2  B2  A2  NC   NC  GND
+/OE   NC  NC  NC  QG  QF  QE  QD  QC  QB   QA  VCC
+
+/QA =     D1 * C1
+
+;/QA =     /D1 * /C1 * /B1 *  A1 + /D1 * C1 * /B1 * /A1
+;/QB =     /D1 *  C1 * /B1 *  A1 + /D1 * C1 * B1 * /A1
+;/QC =     /D1 * /C1 *  B1 * /A1
+;/QD =     /D1 * /C1 * /B1 *  A1 + /D1 * C1 * /B1 * /A1 + /D1 * C1 * B1 * A1
+;/QE =     /D1 * /C1 * /B1 *  A1 + /D1 * /C1 * B1 * A1 + /D1 * C1 * /B1 * /A1 + /D1 * C1 * /B1 * A1 + /D1 * C1 * B1 * A1 + D1 * /C1 * /B1 * A1
+;/QF =     /D1 * /C1 * /B1 *  A1 + /D1 * /C1 * B1 * /A1 + /D1 * /C1 * B1 * A1 + /D1 * C1 * B1 * A1
+;/QG =     /D1 * /C1 * /B1 * /A1 + /D1 * /C1 * /B1 * A1 + /D1 * C1 * B1 * A1
+
+DESCRIPTION
+A seven segment decoder

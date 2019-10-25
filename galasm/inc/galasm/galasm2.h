@@ -7,8 +7,14 @@
 extern "C" {
 #endif
 
-int assemblePldFile(
-    const char* filename, int GenFuse, int GenChip, int GenPin, int JedecSecBit, int JedecFuseChk);
+int assemblePldFile(const char* filename,
+                    int GenFuse,
+                    int GenChip,
+                    int GenPin,
+                    int JedecSecBit,
+                    int JedecFuseChk,
+                    bool verbose,
+                    bool unixNewline);
 
 int assemblePldMemory(const char* filename,
                       unsigned char* buff,
@@ -18,7 +24,8 @@ int assemblePldMemory(const char* filename,
                       int GenPin,
                       int JedecSecBit,
                       int JedecFuseChk,
-                      bool verbose);
+                      bool verbose,
+                      bool unixNewline);
 
 
 #ifdef __cplusplus

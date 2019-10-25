@@ -14,7 +14,8 @@
 #include "jedec.h"
 #include "galasm.h"
 
-static size_t WriteOutput(void* buf, size_t size, size_t nmemb, FILE* out);
+
+static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out, bool unixNewline);
 
 void initJedec(JedecStruct_t* jedec) {
     memset(jedec, 0x00, sizeof(*jedec));
@@ -490,15 +491,15 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
 
     FILE* fp = fopen(filename, "w");
     if (!fp) {
-        FreeBuffer(first_buff); /* error?, then cancel*/
-        ErrorReq(13);           /* can't open file */
+        FreeBuffer(first_buff);
+        ErrorReq(13);
         return;
     }
 
     for (;;) {
         filebuffer = filebuffer2 = mybuff.Entry;
 
-        while (filebuffer2 < mybuff.BuffEnd) { /* get size of buffer */
+        while (filebuffer2 < mybuff.BuffEnd) {
             if (!*filebuffer2) {
                 break;
             }
@@ -506,8 +507,8 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
         }
 
         /* save buffer */
-        /* DHH - 24-Oct-2012: ensure lines are terminated with CRLF */
-        long result = WriteOutput(filebuffer, (size_t)1, (size_t)(filebuffer2 - filebuffer), fp);
+        long result = WriteOutput(
+            filebuffer, (size_t)1, (size_t)(filebuffer2 - filebuffer), fp, cfg->unixNewline);
         if (result != (filebuffer2 - filebuffer)) { /* write error? */
             fclose(fp);
             FreeBuffer(first_buff);
@@ -530,22 +531,35 @@ void WriteJedecFile(char* filename, JedecStruct_t* jedec, Config_t* cfg) {
 }
 
 /*
- * DHH - 24-Oct-2012
- * This function works like fwrite, but outputs newlines as CRLF.
+ * DHH - 24-Oct-2012 This function works like fwrite,
+ * but outputs newlines as CRLF.
+ *
  * My GAL programmer (Wellon VP-190) doesn't like JEDEC files
  * with bare newlines in them.
+ *
+ * ER - 24-Oct-2019
+ * My GAL programmer (XGecu Pro TL866II and minipro SW
+ * on linux) needs unix style newline. (I have added a switch)
  */
-static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out) {
+static size_t WriteOutput(void* buf_, size_t size, size_t nmemb, FILE* out, bool unixNewline) {
     unsigned char* buf = (unsigned char*)buf_;
-    size_t i;
 
-    for (i = 0; i < size * nmemb; i++) {
+    if (unixNewline) {
+        for (size_t i = 0; i < size * nmemb; i++) {
+            unsigned char byte = buf[i];
+            fwrite(&byte, 1, 1, out);
+        }
+
+        return nmemb;
+    }
+
+    for (size_t i = 0; i < size * nmemb; i++) {
         unsigned char byte = buf[i];
         if (byte == '\n') {
             fwrite("\r\n", 1, 2, out);
-        } else {
-            fwrite(&byte, 1, 1, out);
+            continue;
         }
+        fwrite(&byte, 1, 1, out);
     }
 
     return nmemb;

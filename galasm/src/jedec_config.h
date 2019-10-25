@@ -8,6 +8,7 @@
  */
 typedef struct {
     bool verbose;
+    bool unixNewline;
     int gal_type;
     bool JedecSecBit; /* set security bit in JEDEC?      */
     bool JedecFuseChk;

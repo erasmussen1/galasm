@@ -74,4 +74,5 @@ char* AsmErrorArray[] = {"error in source file found",
                          "several .CLK definitions for the same output found",
                          "several .ARST definitions for the same output found",
                          "several .APRST definitions for the same output found",
-                         "use of .CLK, .ARST, .APRST only allowed for registered outputs"};
+                         "use of .CLK, .ARST, .APRST only allowed for registered outputs"
+};

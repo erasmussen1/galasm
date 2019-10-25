@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -45,23 +46,27 @@ int FileSize(const char* filename) {
  *   loads the specified file into memory
  *
  */
-bool ReadFile(const char* filename, int filesize, UBYTE* filebuff) {
-    int actlen;
-    FILE* fp;
-
-    if ((fp = fopen(filename, "r"))) {
-        actlen = fread(filebuff, 1, filesize, fp);
-
-        fclose(fp);
-
-        if (actlen == filesize)
-            return true;
+bool ReadFile(const char* filename, int filesize, uint8_t* buffer) {
+    FILE* fp = fopen(filename, "r");
+    if (!fp) {
+        return false;
     }
-    return false;
+
+    int actlen = fread(buffer, 1, filesize, fp);
+    fclose(fp);
+
+    if (actlen != filesize) {
+        return false;
+    }
+
+    return true;
 }
 
-/* The functions AddByte(), AddString(), IncPointer(), DecPointer() */
-/* and FreeBuffer() are useful for handling chained lists           */
+/**
+ * The functions:
+ *    AddByte(), AddString(), IncPointer(), DecPointer()
+ *    and FreeBuffer() are useful for handling chained lists
+ */
 
 /**
  * AddByte()
@@ -205,5 +210,5 @@ void FreeBuffer(Buffer_t* buff) {
  *
  */
 void ErrorReq(int errornum) {
-    printf("Error: %s\n", ErrorArray[errornum]);
+    printf("ERR: %s\n", ErrorArray[errornum]);
 }

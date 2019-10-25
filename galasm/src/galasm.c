@@ -999,8 +999,7 @@ inline void WriteSpaces(FILE* fp, int numof) {
  */
 void AsmError(int errornum, int pinnum) {
     if (!pinnum) {
-        printf("ERR: Error in line %d: ", linenum);
-        return;
+        printf("ERR: Error in line %d:\n", linenum);        
     }
 
     printf("ERR: Error, pin %d: %s\n", pinnum, AsmErrorArray[errornum]);
