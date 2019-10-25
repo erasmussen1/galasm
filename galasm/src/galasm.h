@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "jedec_config.h"
 #include "jedec.h"
 
 /******************************* definitions *********************************/

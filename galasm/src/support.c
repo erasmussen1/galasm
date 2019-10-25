@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -5,7 +6,6 @@
 
 #include "localize.h"
 #include "support.h"
-#include "galasm.h"
 
 
 /**

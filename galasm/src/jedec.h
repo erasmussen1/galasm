@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include "jedec_config.h"
 #include "galasm_types.h"
 
 
