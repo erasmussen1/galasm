@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_SYSTEM_NAME Linux)
 
-project(GALasmProject VERSION 2.1.2)
+project(GALasmII VERSION 2.1.2)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 14)
