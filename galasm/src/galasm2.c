@@ -45,24 +45,3 @@ int assemblePldFile(const char* filename,
     return rc;
 }
 
-int assemblePldMemory(const char* filename,
-                      unsigned char* fbuff2,
-                      int size2,
-                      int GenFuse,
-                      int GenChip,
-                      int GenPin,
-                      int JedecSecBit,
-                      int JedecFuseChk,
-                      bool verbose,
-                      bool unixNewline) {
-    Config_t cfg;
-    cfg.verbose = verbose;
-    cfg.unixNewline = unixNewline;
-    cfg.GenFuse = GenFuse;
-    cfg.GenChip = GenChip;
-    cfg.GenPin = GenPin;
-    cfg.JedecSecBit = JedecSecBit;
-    cfg.JedecFuseChk = JedecFuseChk;
-
-    return AssemblePldFile(filename, fbuff2, size2, &cfg);
-}

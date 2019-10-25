@@ -15,6 +15,7 @@
 extern "C" {
 #endif
 
+#include "../src/galasm_types.h"
 #include "../src/galasm.h"
 
 #ifdef __cplusplus
@@ -38,7 +39,13 @@ bool rangeEqual(InputIterator1 first1,
 
 struct GalasmFixture : public testing::Test {
     GalasmFixture() {
-        //
+        cfg.verbose = false;
+        cfg.unixNewline = false;
+        cfg.GenFuse = 1;
+        cfg.GenChip = 1;
+        cfg.GenPin = 1;
+        cfg.JedecSecBit = 0;
+        cfg.JedecFuseChk = 0;
     }
 
     ~GalasmFixture() {
@@ -83,6 +90,7 @@ struct GalasmFixture : public testing::Test {
         return rangeEqual(begin1, end, begin2, end);
     }
 
+    Config_t cfg;
     int N{0};
     bool res{false};
     int rc{0};
@@ -108,7 +116,7 @@ TEST_F(GalasmFixture, GenerateCounter_PLD) {
     res = readFileToBuffer("Counter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Counter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false, false);
+    rc = AssemblePldFile("Counter_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Counter.jed", "Counter_out.jed"));
@@ -123,7 +131,7 @@ TEST_F(GalasmFixture, GAL20RA10_PLD) {
     std::vector<unsigned char> v(N, 0x00);
     res = readFileToBuffer("GAL20RA10.pld", N, v.data());
 
-    rc = assemblePldMemory("GAL20RA10_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false, false);
+    rc = AssemblePldFile("GAL20RA10_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("GAL20RA10.jed", "GAL20RA10_out.jed"));
@@ -139,7 +147,7 @@ TEST_F(GalasmFixture, GAL22V10_PLD) {
     res = readFileToBuffer("GAL22V10.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("GAL22V10_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false, false);
+    rc = AssemblePldFile("GAL22V10_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("GAL22V10.jed", "GAL22V10_out.jed"));
@@ -155,7 +163,7 @@ TEST_F(GalasmFixture, Gatter_PLD) {
     res = readFileToBuffer("Gatter.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Gatter_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false, false);
+    rc = AssemblePldFile("Gatter_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Gatter.jed", "Gatter_out.jed"));
@@ -171,7 +179,7 @@ TEST_F(GalasmFixture, Tristate_PLD) {
     res = readFileToBuffer("Tristate.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("Tristate_out.pld", v.data(), v.size(), 1, 1, 1, 0, 0, false, false);
+    rc = AssemblePldFile("Tristate_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 
     EXPECT_TRUE(compareTwoFiles("Tristate.jed", "Tristate_out.jed"));
@@ -180,7 +188,6 @@ TEST_F(GalasmFixture, Tristate_PLD) {
     EXPECT_TRUE(compareTwoFiles("Tristate.pin", "Tristate_out.pin"));
 }
 
-
 TEST_F(GalasmFixture, SevenSegment_PLD) {
     N = fileSize("7seg.pld");
 
@@ -188,6 +195,6 @@ TEST_F(GalasmFixture, SevenSegment_PLD) {
     res = readFileToBuffer("7seg.pld", N, v.data());
     EXPECT_TRUE(res);
 
-    rc = assemblePldMemory("7seg_out.pld", v.data(), v.size(), 1, 1, 1, 0, 1, false, false);
+    rc = AssemblePldFile("7seg_out.pld", v.data(), v.size(), &cfg);
     EXPECT_TRUE(!rc);
 }

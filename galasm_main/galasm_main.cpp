@@ -14,11 +14,13 @@ struct Options {
     bool showUsage{false};
     bool showOptions{false};
 
-    bool GenFuse{true};
-    bool GenChip{true};
-    bool GenPin{true};
+    bool GenFuse{false};
+    bool GenChip{false};
+    bool GenPin{false};
     bool JedecSecBit{false};
     bool JedecFuseChk{false};
+    bool verbose{false};
+    bool unixNewline {false};
 
     void printOptions(void) {
         std::cout << "PLD filename: " << filename << "\n";
@@ -40,44 +42,51 @@ static void printVersion(void) {
 
 static void printUsage(void) {
     std::cout << "Usage:\n"
-                 "GALasm [-scfpa] -i <filename>\n"
+                 "GALasm [FCPSAoxVvhu] -f <filename>\n"
                  "\n"
-                 "    -s Enable security fuse\n"
-                 "    -c Do not create the .chp file\n"
-                 "    -f Do not create the .fus file\n"
-                 "    -p Do not create the .pin file\n"
-                 "    -a Restrict checksum to the fuse array only\n\n";
+                 "    -S   Enable security fuse\n"
+                 "    -C   Generate .chp file\n"
+                 "    -F   Generate .fus file\n"
+                 "    -P   Generate the .pin file\n"
+                 "    -A   Restrict checksum to the fuse array only\n"
+                 "    -x   Unix style newline (jed file)\n"
+                 "    -V   Verbose output\n"
+                 "    -v   Show version\n"
+                 "    -h   Show help menu\n"
+                 "    -f   PLD input filename\n"
+                 "\n\n" ;
 }
 
 static void parseCmdline(int argc, char** argv, Options& opts) {
     int opt = 0;
-    while ((opt = getopt(argc, argv, "fFcCpPsSaAi:ovhu")) != -1) {
+    while ((opt = getopt(argc, argv, "FCPSAf:oxVvhu")) != -1) {
         switch (opt) {
-            case 'f':
             case 'F':
-                opts.GenFuse = false;
+                opts.GenFuse = true;
                 break;
-            case 'c':
             case 'C':
-                opts.GenChip = false;
+                opts.GenChip = true;
                 break;
-            case 'p':
             case 'P':
-                opts.GenPin = false;
+                opts.GenPin = true;
                 break;
-            case 's':
             case 'S':
                 opts.JedecSecBit = true;
                 break;
-            case 'a':
             case 'A':
                 opts.JedecFuseChk = true;
                 break;
-            case 'i':
+            case 'f':
                 opts.filename = std::string(optarg);
                 break;
             case 'o':
                 opts.showOptions = true;
+                break;
+            case 'x':
+                opts.unixNewline = true;
+                break;
+            case 'V':
+                opts.verbose = true;
                 break;
             case 'v':
                 opts.showVersion = true;
@@ -115,9 +124,8 @@ int main(int argc, char* argv[]) {
                              (int)opts.GenPin,
                              (int)opts.JedecSecBit,
                              (int)opts.JedecFuseChk,
-                             false,
-                             false  // TODO - add option
-    );
+                             (int)opts.verbose,
+                             (int)opts.unixNewline);
     if (rc) {
         std::cout << "Assembling failed.\n";
         return rc;

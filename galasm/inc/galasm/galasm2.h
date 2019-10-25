@@ -16,18 +16,6 @@ int assemblePldFile(const char* filename,
                     bool verbose,
                     bool unixNewline);
 
-int assemblePldMemory(const char* filename,
-                      unsigned char* buff,
-                      int size2,
-                      int GenFuse,
-                      int GenChip,
-                      int GenPin,
-                      int JedecSecBit,
-                      int JedecFuseChk,
-                      bool verbose,
-                      bool unixNewline);
-
-
 #ifdef __cplusplus
 }
 #endif
