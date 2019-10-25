@@ -31,10 +31,8 @@ static void printVersion(void) {
     std::cout << "GALasmII, Portable GAL Assembler\n"
                  "Original sources base of Christian Habermann's code\n"
                  "  Version " Package_VERSION_MAJOR "." Package_VERSION_MINOR
-                 "." Package_VERSION_PATCH
-                 "\n"
-                 "  Branch  " GIT_BRANCH
-                 "\n"
+                 "." Package_VERSION_PATCH "\n"
+                 "  Branch  " GIT_BRANCH "\n"
                  "  Build date: " __DATE__ " " __TIME__
                  "\n"
                  "\n";
@@ -115,6 +113,10 @@ int main(int argc, char* argv[]) {
 
     if (opts.showUsage) {
         printUsage();
+        return -1;
+    }
+
+    if (opts.filename.empty()) {
         return -1;
     }
 
