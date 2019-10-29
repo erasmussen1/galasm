@@ -22,48 +22,6 @@
 
 
 /******************************** variables **********************************/
-/* Diese Arrays geben an, in welche Spalte der ent-  */
-/* sprechende Pin eingekoppelt (bzw. rückgekoppelt)  */
-/* wird. Für die invertierende Einkopplung ist 1 zu  */
-/* addieren, um die entsprechende Spalte zu erhalten */
-/* -1 heißt: keine Einkopplung auf Matrix vorhanden  */
-
-/* Possible interpretation (by me)
- * These arrays maps the pins to the fuse matrix. Each integer
- * represents the number of the linked column or -1 if that pin
- * dosn't link to any column . For inverted signals, the right column
- * number can be calculated by adding one to the given number.
- */
-
-/* GAL16V8 */
-int PinToFuse16Mode1[20] = {2,  0,  4,  8,  12, 16, 20, 24, 28, -1,
-                            30, 26, 22, 18, -1, -1, 14, 10, 6,  -1};
-
-int PinToFuse16Mode2[20] = {2,  0,  4,  8,  12, 16, 20, 24, 28, -1,
-                            30, -1, 26, 22, 18, 14, 10, 6,  -1, -1};
-
-int PinToFuse16Mode3[20] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, -1,
-                            -1, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
-
-/* GAL20V8 */
-int PinToFuse20Mode1[24] = {2,  0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
-                            38, 34, 30, 26, 22, -1, -1, 18, 14, 10, 6,  -1};
-
-int PinToFuse20Mode2[24] = {2,  0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
-                            38, 34, -1, 30, 26, 22, 18, 14, 10, -1, 6,  -1};
-
-int PinToFuse20Mode3[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
-                            -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
-
-/* GAL22V10 */
-int PinToFuse22V10[24] = {0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, -1,
-                          42, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
-
-
-/* GAL20RA10 */
-int PinToFuse20RA10[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
-                           -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
-
 
 /* The last two entries of the 22V10 arrays are for the   */
 /* AR and SP rows of the 22V10 GAL. This rows are not     */
@@ -85,6 +43,92 @@ JedecStruct_t Jedec;
 Pin_t actPin;
 GAL_OLMC_t OLMC[12];
 
+/**
+ * SetAND()
+ *
+ * input:   row         row in which the AND should be set
+ *          pinnum      pin which should be ANDed
+ *          negation    0: pin without negation
+ *                      1: pin with negation sign (/)
+ * output:  none
+ *
+ * remarks: sets an AND (=0) in the fuse matrix
+ */
+void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
+    int column = 0;
+
+    /*
+     * These arrays maps the pins to the fuse matrix. Each integer
+     * represents the number of the linked column or -1 if that pin
+     * doesn't link to any column .
+     * For inverted signals, the right column number can be calculated
+     * by adding one to the given number.
+     */
+
+    /* GAL16V8 */
+    static const int PinToFuse16Mode1[20] = {2,  0,  4,  8,  12, 16, 20, 24, 28, -1,
+                                             30, 26, 22, 18, -1, -1, 14, 10, 6,  -1};
+
+    static const int PinToFuse16Mode2[20] = {2,  0,  4,  8,  12, 16, 20, 24, 28, -1,
+                                             30, -1, 26, 22, 18, 14, 10, 6,  -1, -1};
+
+    static const int PinToFuse16Mode3[20] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, -1,
+                                             -1, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
+
+    /* GAL20V8 */
+    static const int PinToFuse20Mode1[24] = {2,  0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
+                                             38, 34, 30, 26, 22, -1, -1, 18, 14, 10, 6,  -1};
+
+    static const int PinToFuse20Mode2[24] = {2,  0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
+                                             38, 34, -1, 30, 26, 22, 18, 14, 10, -1, 6,  -1};
+
+    static const int PinToFuse20Mode3[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
+                                             -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
+
+    /* GAL22V10 */
+    static const int PinToFuse22V10[24] = {0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, -1,
+                                           42, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
+
+    /* GAL20RA10 */
+    static const int PinToFuse20RA10[24] = {-1, 0,  4,  8,  12, 16, 20, 24, 28, 32, 36, -1,
+                                            -1, 38, 34, 30, 26, 22, 18, 14, 10, 6,  2,  -1};
+
+    switch (cfg->gal_type) {
+        case GAL16V8:
+            if (modus == MODE1)
+                column = PinToFuse16Mode1[pinnum - 1];
+            if (modus == MODE2)
+                column = PinToFuse16Mode2[pinnum - 1];
+            if (modus == MODE3)
+                column = PinToFuse16Mode3[pinnum - 1];
+            break;
+
+        case GAL20V8:
+            if (modus == MODE1)
+                column = PinToFuse20Mode1[pinnum - 1];
+            if (modus == MODE2)
+                column = PinToFuse20Mode2[pinnum - 1];
+            if (modus == MODE3)
+                column = PinToFuse20Mode3[pinnum - 1];
+            break;
+
+        case GAL22V10:
+            column = PinToFuse22V10[pinnum - 1];
+
+            /* is it a registered OLMC pin?   */
+            /* yes, then correct the negation */
+            if ((pinnum >= 14 && pinnum <= 23) && !jedec->GALS1[23 - pinnum]) {
+                negation = negation ? 0 : 1;
+            }
+            break;
+
+        case GAL20RA10:
+            column = PinToFuse20RA10[pinnum - 1];
+            break;
+    }
+
+    jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
+}
 
 int GetBaseName(const char* filename, const char* ext, char* newfilename) {
     strcpy(newfilename, filename);
@@ -475,57 +519,6 @@ static void getRowOffset(Config_t* cfg,
                         *row_offset = 4;
             }
     }
-}
-
-/**
- * SetAND()
- *
- * input:   row         row in which the AND should be set
- *          pinnum      pin which should be ANDed
- *          negation    0: pin without negation
- *                      1: pin with negation sign (/)
- * output:  none
- *
- * remarks: sets an AND (=0) in the fuse matrix
- */
-void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
-    int column = 0;
-
-    switch (cfg->gal_type) {
-        case GAL16V8:
-            if (modus == MODE1)
-                column = PinToFuse16Mode1[pinnum - 1];
-            if (modus == MODE2)
-                column = PinToFuse16Mode2[pinnum - 1];
-            if (modus == MODE3)
-                column = PinToFuse16Mode3[pinnum - 1];
-            break;
-
-        case GAL20V8:
-            if (modus == MODE1)
-                column = PinToFuse20Mode1[pinnum - 1];
-            if (modus == MODE2)
-                column = PinToFuse20Mode2[pinnum - 1];
-            if (modus == MODE3)
-                column = PinToFuse20Mode3[pinnum - 1];
-            break;
-
-        case GAL22V10:
-            column = PinToFuse22V10[pinnum - 1];
-
-            /* is it a registered OLMC pin?   */
-            /* yes, then correct the negation */
-            if ((pinnum >= 14 && pinnum <= 23) && !jedec->GALS1[23 - pinnum]) {
-                negation = negation ? 0 : 1;
-            }
-            break;
-
-        case GAL20RA10:
-            column = PinToFuse20RA10[pinnum - 1];
-            break;
-    }
-
-    jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
 }
 
 /**
@@ -1034,6 +1027,35 @@ static int getSuffixFromString(char* str, int* suffix) {
     return rc;
 }
 
+static int isPinNameTwice(Config_t* cfg, int n) {
+    int i, j;
+    uint8_t* pinnames = &cfg->PinNames[0][0];
+
+    for (int l = 0; l < n; l++) {
+        if (!strcmp((char*)pinnames + l * 10, "NC")) {
+            continue;
+        }
+
+        i = 0;
+        j = 0;
+
+        /* skip negation sign */
+        if (IsNEG(*(pinnames + l * 10))) {
+            i = 1;
+        }
+
+        if (IsNEG(*(pinnames + n * 10))) {
+            j = 1;
+        }
+
+        if (!strcmp((char*)(pinnames + l * 10 + i), (char*)(pinnames + n * 10 + j))) {
+            return 9;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * int AssemblePldFile(char *file)
  *
@@ -1049,7 +1071,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     uint8_t *bool_start, *oldptr;
     char prevOp;
     char suffix_strn[MAX_SUFFIX_SIZE];
-    int i = 0, j, k, l = 0;
+    int k;
     int max_chr, pass, pin_num, bool_linenum;
     int actOLMC, row_offset, newline, oldline;
     int suffix, start_row, max_row;
@@ -1116,7 +1138,6 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         m = 0;
         chr = *actptr;
 
-        /* is there a negation? */
         if (IsNEG(chr)) {
             max_chr = 10;
             PinDecNeg[n] = 1;
@@ -1153,23 +1174,9 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
         }
         *(pinnames + n * 10 + m) = '\0';
 
-        /* pin name twice? */
-        for (l = 0; l < n; l++) {
-            if (strcmp((char*)pinnames + l * 10, "NC")) {
-                i = j = 0;
-
-                if (IsNEG(*(pinnames + l * 10))) { /* skip negation sign */
-                    i = 1;
-                }
-
-                if (IsNEG(*(pinnames + n * 10))) {
-                    j = 1;
-                }
-
-                if (!strcmp((char*)(pinnames + l * 10 + i), (char*)(pinnames + n * 10 + j))) {
-                    return AsmError(9, 0, linenum); /* pin name defined twice */
-                }
-            }
+        int rc = isPinNameTwice(cfg, n);
+        if (rc) {
+            return AsmError(9, 0, linenum);
         }
 
         /* is GND at the GND-pin? */
