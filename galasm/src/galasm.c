@@ -599,7 +599,8 @@ int GetNextChar(void) {
 }
 
 /**
- * IsPinName()
+ * Description:
+ *          Checks if actptr points to a pinname or not
  *
  * input:   *pinnames   pointer to the pinnames array
  *          numofpins   number of pins (20 or 24, depends on the type of GAL)
@@ -609,17 +610,15 @@ int GetNextChar(void) {
  *          actPin.p_Neg:   pinname with '/' = 1;  without '/' = 0
  *
  * output:  none
- *
- * remarks: This function tests whether actptr points to a pinname or not
  */
-void IsPinName(uint8_t* pinnames, int numofpins) {
-    actPin.p_Neg = 0; /* install structure for pin */
-    actPin.p_Pin = 0;
+static void IsPinName(Config_t* cfg, Pin_t* pin) {
+    pin->p_Neg = 0; /* install structure for pin */
+    pin->p_Pin = 0;
 
     /* negation? */
     if (IsNEG(*actptr)) {
         actptr++;
-        actPin.p_Neg = 1;
+        pin->p_Neg = 1;
     }
 
     /* get length of pin name */
@@ -635,13 +634,14 @@ void IsPinName(uint8_t* pinnames, int numofpins) {
     }
 
     if ((n == 2) && !strncmp((char*)oldactptr, "NC", (size_t)2)) {
-        actPin.p_Pin = NC_PIN; /* NC pin*/
+        pin->p_Pin = NC_PIN; /* NC pin*/
         return;
     }
 
     /* examine whole list of pin names */
+    uint8_t* pinnames = &cfg->PinNames[0][0];
     int i = 0;
-    for (int k = 0; k < numofpins; k++) {
+    for (int k = 0; k < cfg->num_of_pins; k++) {
         i = 0;
 
         if (IsNEG(*(pinnames + k * 10))) {
@@ -655,12 +655,11 @@ void IsPinName(uint8_t* pinnames, int numofpins) {
 
         /* yes, then compare these strings */
         if (!(strncmp((char*)oldactptr, (char*)(pinnames + k * 10 + i), (size_t)n))) {
-            actPin.p_Pin = k + 1;
+            pin->p_Pin = k + 1;
             break;
         }
     }
 }
-
 
 /******************************************************************************
 ** Is_AR_SP()
@@ -1611,7 +1610,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         oldptr = actptr; /* save pointer */
 
-        IsPinName(pinnames, cfg->num_of_pins);
+        IsPinName(cfg, &actPin);
 
         /* AR and SP is not allowed in terms of an equation */
         if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) {
@@ -1778,7 +1777,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             linenum = newline;
             oldptr = actptr;
 
-            IsPinName(pinnames, cfg->num_of_pins);
+            IsPinName(cfg, &actPin);
 
             if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) { /* no pin name? then  */
                 Is_AR_SP(oldptr);                             /* check whether name */

@@ -148,7 +148,6 @@ int GetBaseName(const char* filename, const char* ext, char* newfilename);
 
 /* GALasm.c */
 void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg);
-void IsPinName(uint8_t* pinnames, int numofpins);
 int GetNextChar(void);
 int GetNextLine(void);
 
