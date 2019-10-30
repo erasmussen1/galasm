@@ -52,7 +52,7 @@ include_directories(${CMAKE_BINARY_DIR})
 # Common compiler options for debug and release builds
 #
 set(flag " ")
-# set(flag "${flag} -Werror")
+set(flag "${flag} -Werror")
 set(flag "${flag} -Wpointer-arith")
 set(flag "${flag} -Wno-shadow ")
 set(flag "${flag} -Wcast-qual")

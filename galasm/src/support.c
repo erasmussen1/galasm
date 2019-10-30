@@ -204,3 +204,26 @@ void FreeBuffer(Buffer_t* buff) {
         buff = nextbuff;
     }
 }
+
+int GetBaseName(const char* filename, const char* ext, char* newfilename) {
+    strcpy(newfilename, filename);
+
+    char* base = newfilename;
+
+    newfilename = base + strlen(filename);
+
+    while (newfilename > base && *newfilename != '.') {
+        --newfilename;
+    }
+
+    newfilename++;
+    for (int i = 0; ext[i] != '\0'; i++) {
+        *newfilename++ = ext[i];
+    }
+    *newfilename = '\0';
+
+    newfilename = base;
+
+    return 0;
+}
+

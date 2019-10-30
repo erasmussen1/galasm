@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-
+int GetBaseName(const char* filename, const char* ext, char* newfilename);
 int FileSize(const char* filename);
 bool ReadFile(const char* filename, int filesize, uint8_t* filebuff);
 int AddByte(ActBuffer_t* buff, uint8_t code);

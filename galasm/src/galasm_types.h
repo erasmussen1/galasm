@@ -48,4 +48,6 @@ typedef struct {
     uint8_t PinNames[24 + 1][10];  // TODO - Find why PinNames[24][10] has memory leaks
 } Config_t;
 
+
+
 #endif // GALASM_TYPES_H

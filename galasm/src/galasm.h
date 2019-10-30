@@ -1,11 +1,4 @@
-/******************************************************************************
-** GALasm.h
-*******************************************************************************
-**
-** description:
-** This file includes some definitions and structures used by GALasm.
-**
-********************************************************************************/
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -144,20 +137,12 @@ typedef struct {
 /*************************** function declartions ****************************/
 
 int AssemblePldFile(const char* file, unsigned char* fbuff2, int size2, Config_t* cfg);
-int GetBaseName(const char* filename, const char* ext, char* newfilename);
 
 /* GALasm.c */
-void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg);
-int GetNextChar(void);
-int GetNextLine(void);
-
 void WriteChipFile(char* filename, Config_t* cfg);
 void WritePinFile(char* filename, Config_t* cfg);
-void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg);
 void WriteSpaces(FILE* fp, int numof);
 void WriteRow(FILE* fp, int row, int num_of_col);
-int IsOR(char);
-int IsAND(char);
-int IsNEG(char);
-void Is_AR_SP(uint8_t* ptr);
-int GetPinNum(int gal_type);
+
+void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg);
+

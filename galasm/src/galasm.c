@@ -54,7 +54,7 @@ GAL_OLMC_t OLMC[12];
  *
  * remarks: sets an AND (=0) in the fuse matrix
  */
-void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
+static void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* cfg) {
     int column = 0;
 
     /*
@@ -130,26 +130,72 @@ void SetAND(int row, int pinnum, int negation, JedecStruct_t* jedec, Config_t* c
     jedec->GALLogic[row * cfg->num_of_col + column + negation] = 0;
 }
 
-int GetBaseName(const char* filename, const char* ext, char* newfilename) {
-    strcpy(newfilename, filename);
-
-    char* base = newfilename;
-
-    newfilename = base + strlen(filename);
-
-    while (newfilename > base && *newfilename != '.') {
-        --newfilename;
+static int IsOR(char chr) {
+    if (chr == '+' || chr == '#' || chr == '|') {
+        return 1;
     }
-
-    newfilename++;
-    for (int i = 0; ext[i] != '\0'; i++) {
-        *newfilename++ = ext[i];
-    }
-    *newfilename = '\0';
-
-    newfilename = base;
 
     return 0;
+}
+
+static int IsAND(char chr) {
+    if (chr == '*' || chr == '&') {
+        return 1;
+    }
+
+    return 0;
+}
+
+static int IsNEG(char chr) {
+    if (chr == '/' || chr == '!' || chr == '~') {
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * Is_AR_SP()
+ *
+ * input:   *ptr    pointer to the first character of the pinname
+ *
+ * output:  none
+ *          global  actPin.p_Pin: 23: AR, 24: SP, 0: no AR, SP
+ *                  actPin.p_Neg: pinname with '/' = 1;  without '/' = 0
+ *
+ * remarks: This function tests whether actptr points to a AR or SP
+ */
+static void Is_AR_SP(uint8_t* ptr, Pin_t* pin) {
+    pin->p_Neg = 0;
+    pin->p_Pin = 0;
+
+    if (IsNEG(*ptr)) {
+        ptr++;
+        pin->p_Neg = 1;
+    }
+
+    /* get length of pin name */
+    uint8_t* oldptr = ptr;
+
+    int n = 0;
+    while (isalpha(*ptr) || isdigit(*ptr)) {
+        ptr++;
+        n++;
+    }
+
+    /* assign AR to "OLMC 11" ("pin 24") and */
+    /* assign SP to "OLMC 12" ("pin 25")     */
+    if (!n) {
+        return;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
+        pin->p_Pin = DUMMY_OLMC11;
+    }
+
+    if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
+        pin->p_Pin = DUMMY_OLMC12;
+    }
 }
 
 static void outputToFiles(const char* file, JedecStruct_t* jedec, Config_t* cfg) {
@@ -534,7 +580,7 @@ static void getRowOffset(Config_t* cfg,
  * remarks:
  *   gets pointer to next line
  */
-int GetNextLine(void) {
+static int GetNextLine(void) {
     while (1) {
         if (*actptr == '\n') {
             actptr++;
@@ -562,7 +608,7 @@ int GetNextLine(void) {
  *
  * remarks: searchs the next character which is no comment, space, TAB, LF
  */
-int GetNextChar(void) {
+static int GetNextChar(void) {
     while (1) {
         switch (*actptr) {
             case '\n':
@@ -659,75 +705,6 @@ static void IsPinName(Config_t* cfg, Pin_t* pin) {
             break;
         }
     }
-}
-
-/******************************************************************************
-** Is_AR_SP()
-*******************************************************************************
-** input:   *ptr    pointer to the first character of the pinname
-**
-** output:  none
-**          global  actPin.p_Pin: 23: AR, 24: SP, 0: no AR, SP
-**                  actPin.p_Neg: pinname with '/' = 1;  without '/' = 0
-**
-** remarks: This function tests whether actptr points to a AR or SP
-******************************************************************************/
-void Is_AR_SP(uint8_t* ptr) {
-    /* install structure for pin */
-    actPin.p_Neg = 0;
-    actPin.p_Pin = 0;
-
-    if (IsNEG(*ptr)) {
-        ptr++;
-        actPin.p_Neg = 1;
-    }
-
-    /* get length of pin name */
-    uint8_t* oldptr = ptr;
-
-    int n = 0;
-    while (isalpha(*ptr) || isdigit(*ptr)) {
-        ptr++;
-        n++;
-    }
-
-    /* assign AR to "OLMC 11" ("pin 24") and */
-    /* assign SP to "OLMC 12" ("pin 25")     */
-    if (!n) {
-        return;
-    }
-
-    if ((n == 2) && !strncmp((char*)oldptr, "AR", (size_t)2)) {
-        actPin.p_Pin = DUMMY_OLMC11;
-    }
-
-    if ((n == 2) && !strncmp((char*)oldptr, "SP", (size_t)2)) {
-        actPin.p_Pin = DUMMY_OLMC12;
-    }
-}
-
-int IsOR(char chr) {
-    if (chr == '+' || chr == '#' || chr == '|') {
-        return 1;
-    }
-
-    return 0;
-}
-
-int IsAND(char chr) {
-    if (chr == '*' || chr == '&') {
-        return 1;
-    }
-
-    return 0;
-}
-
-int IsNEG(char chr) {
-    if (chr == '/' || chr == '!' || chr == '~') {
-        return 1;
-    }
-
-    return 0;
 }
 
 /******************************************************************************
@@ -1614,7 +1591,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
 
         /* AR and SP is not allowed in terms of an equation */
         if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) {
-            Is_AR_SP(oldptr);
+            Is_AR_SP(oldptr, &actPin);
 
             if (actPin.p_Pin) {
                 return AsmError(31, 0, linenum);
@@ -1780,7 +1757,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
             IsPinName(cfg, &actPin);
 
             if (cfg->gal_type == GAL22V10 && !actPin.p_Pin) { /* no pin name? then  */
-                Is_AR_SP(oldptr);                             /* check whether name */
+                Is_AR_SP(oldptr, &actPin);                    /* check whether name */
                                                               /* is AR or SP        */
                 if (actPin.p_Pin && actPin.p_Neg) {           /* but no negation of */
                     return AsmError(32, 0, linenum);          /* AR or SP           */

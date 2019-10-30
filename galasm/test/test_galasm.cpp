@@ -17,6 +17,7 @@ extern "C" {
 
 #include "../src/galasm_types.h"
 #include "../src/galasm.h"
+#include "../src/support.h"
 
 #ifdef __cplusplus
 }
