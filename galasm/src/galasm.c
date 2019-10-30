@@ -262,8 +262,8 @@ static int getOlmcPinNumber(const int gal_type, const uint8_t pinNumber) {
 /**
  * get OLMC number
  */
-static int getOLMCnumber(Config_t* cfg, Pin_t* actPin) {
-    return getOlmcPinNumber(cfg->gal_type, actPin->p_Pin);
+static int getOLMCnumber(Config_t* cfg, Pin_t* pin) {
+    return getOlmcPinNumber(cfg->gal_type, pin->p_Pin);
 }
 
 static int isEndOfChipNameBlank(unsigned char* ch, long offset) {
@@ -1048,7 +1048,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     char prevOp;
     char suffix_strn[MAX_SUFFIX_SIZE];
     int k;
-    int max_chr, pass, pin_num, bool_linenum;
+    int max_chr, pin_num, bool_linenum;
     int actOLMC, row_offset, newline, oldline;
     int suffix, start_row, max_row;
 
@@ -1217,7 +1217,7 @@ int AssemblePldFile(const char* file, unsigned char* fbuff, int fsize, Config_t*
     bool_linenum = linenum; /* the equations and save line number */
 
     /* this is a two-pass-assembler */
-    for (pass = 0; pass < 2; pass++) {
+    for (int pass = 0; pass < 2; pass++) {
         if (cfg->verbose) {
             printf("Assembler Phase %d for \"%s\"\n", (pass + 1), file);
         }
