@@ -22,6 +22,9 @@ install_gtest()
     # Building and installing gtest
     pushd googletest/
     git pull
+
+    # git co release-1.8.1
+
     cmake .
     make
     sudo make install

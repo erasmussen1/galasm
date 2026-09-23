@@ -27,11 +27,11 @@ struct Options {
     }
 };
 
+
 static void printVersion(void) {
-    std::cout << "GALasmII, Portable GAL Assembler\n"
+    std::cout << PROJECT_NAME ", Portable GAL Assembler\n"
                  "Original sources base of Christian Habermann's code\n"
-                 "  Version " Package_VERSION_MAJOR "." Package_VERSION_MINOR
-                 "." Package_VERSION_PATCH "\n"
+                 "  Version " PROJECT_VERSION "." GIT_COMMIT_HASH "\n"
                  "  Branch  " GIT_BRANCH "\n"
                  "  Build date: " __DATE__ " " __TIME__
                  "\n"

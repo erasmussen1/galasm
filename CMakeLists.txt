@@ -1,25 +1,51 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.25)
 
 set(CMAKE_SYSTEM_NAME Linux)
 
 project(GALasmII VERSION 2.1.2)
 
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 26)
 
 option(RELEASE_BUILD "Release build " OFF)
 option(BUILD_UNITTEST "Build unittests " OFF)
+option(ENABLE_CCACHE "Enable ccache" OFF)
 option(BUILD_SHARED  "Build as shared library" OFF)
 option(ENABLE_SANITIZER "Enable address sanitizer" OFF)
+option(BUILD_FUZZER "Build fuzzer" OFF)
+option(BUILD_BENCHMARK "Build benchmarking test" OFF)
+option(RUN_CLANG_TIDY "Run clang-tidy" OFF)
+option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
 
+# Switch to enable a more verbose output for the gmake useful for debugging)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
-
+# Create json meta data for Visual Studio Code, clang-tidy, code complete and etc
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
+if(ENABLE_CPPCHECK)
+    message(WARNING "  === cppcheck build === ")
+    set(CMAKE_CXX_CPPCHECK "cppcheck")
+endif()
+
+if(RELEASE_BUILD)
+    message(WARNING "  === Release build === ")
+else()
+    message(WARNING "  === Debug build === ")
+endif()
+
 if (BUILD_UNITTEST)
-  enable_testing()
+    message(WARNING "  === Building unit-tests === ")
+    enable_testing()
+endif()
+
+if(BUILD_FUZZER)
+  message(WARNING "  === build for fuzzing === ")
+  # set(flag "${flag} -DHAVE_FUZZER -fsanitize=address,fuzzer ")
+  # set(flag "${flag} -DHAVE_FUZZER -fsanitize=address ")
+  set(flag "${flag} -DHAVE_FUZZER ")
+  set(ENABLE_SANITIZER "OFF")
+  set(BUILD_SHARED "OFF")
 endif()
 
 if (BUILD_SHARED)
@@ -28,6 +54,15 @@ else()
   set(BUILD_TYPE "STATIC")
 endif()
 
+if (BUILD_BENCHMARK)
+    find_package(benchmark REQUIRED)
+endif()
+
+if(RUN_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+endif()
+
+# Get the current working branch from git
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -35,6 +70,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+# Get the latest abbreviated commit hash of the working branch
 execute_process(
   COMMAND git log -1 --format=%h
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -43,64 +79,90 @@ execute_process(
 )
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/ProjectVersion.h.in
+  ${CMAKE_SOURCE_DIR}/cmake/ProjectVersion.h.in
   ${CMAKE_BINARY_DIR}/ProjectVersion.h
 )
 
-include_directories(${CMAKE_BINARY_DIR})
+include_directories(
+    ${CMAKE_BINARY_DIR}
+)
 
-# Common compiler options for debug and release builds
-#
-set(flag " ")
-set(flag "${flag} -Werror")
-set(flag "${flag} -Wpointer-arith")
-set(flag "${flag} -Wno-shadow ")
-set(flag "${flag} -Wcast-qual")
-set(flag "${flag} -Wsign-compare")
-set(flag "${flag} -Wunused-variable")
-set(flag "${flag} -Wunused-value")
-set(flag "${flag} -Wunused-label")
-set(flag "${flag} -Wparentheses")
-set(flag "${flag} -Wreturn-type")
-set(flag "${flag} -Wno-unused-function")
-set(flag "${flag} -Wunused-const-variable")
-set(flag "${flag} -Wcast-align")
+# add_compile_definitions(MY_GLOBAL_VAR)
 
-# C only flags
-set(flag_c "${flag_c} -Wmissing-prototypes")
-set(flag_c "${flag_c} -Wno-shift-count-overflow")
-
-# CPP only flags
-set(flag_cpp "${flag_cpp} -Wreorder")
+add_compile_options(
+    # $<$<COMPILE_LANGUAGE:CXX>:-Weffc++>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wreorder>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-exceptions>
+    $<$<COMPILE_LANGUAGE:C>:-Wmissing-prototypes>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wcast-qual>
+    #-Wextra
+    #-fstack-protector-strong
+    #-fanalyzer
+    #-Werror
+    -Wpointer-arith
+    -Wcast-qual    
+    -Wsign-compare
+    -Wunused-variable
+    -Wunused-value
+    -Wunused-label
+    -Wunused-but-set-variable
+    -Wparentheses
+    -Wreturn-type
+    -Wno-unused-function
+    -fstack-protector-all
+    -Wshift-count-overflow
+    -Wpedantic
+    -Wconversion
+    -Wsign-conversion
+    -Wshadow
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wformat=2
+    -Wimplicit-fallthrough
+    -fstack-protector-strong
+    -fstack-clash-protection
+)
 
 if(RELEASE_BUILD)
-  message(WARNING "  === Release build === ")
-  set(flag "${flag} -O3")
-  set(flag "${flag} -DNDEBUG")
+    add_compile_options(-Wl,--no-undefined)
 else()
-  message(WARNING "  === Debug build === ")
-  set(CMAKE_BUILD_TYPE Debug)
-
-  set(flag "${flag} -Wall")
-  set(flag "${flag} -g ")
-  set(flag "${flag} -O0")
-
   if(ENABLE_SANITIZER)
     message(WARNING "  === sanitizer is enabled === ")
     # http://clang.llvm.org/docs/AddressSanitizer.html
-    # set(flag "${flag} -fsanitize=leak -fno-omit-frame-pointer")
-    # set(flag "${flag} -fsanitize=thread -fno-omit-frame-pointer")
-    set(flag "${flag} -fsanitize=address -fno-omit-frame-pointer")
+
+        add_compile_options(
+            -Wall
+            -fno-omit-frame-pointer
+        )
+
+        # add_compile_options(-fsanitize=thread)
+        # add_link_options(-fsanitize=thread)
+
+        # add_compile_options(-fsanitize=leak)
+        # add_link_options(-fsanitize=leak)
+
+        # add_compile_options(-fsanitize=address)
+        # add_link_options(-fsanitize=address)
+
+        # add_compile_options(-fsanitize=undefined)
+        # add_link_options(-fsanitize=undefined)
+
+        add_compile_options(-fsanitize=address,signed-integer-overflow)
+        add_link_options(-fsanitize=address,signed-integer-overflow)
+
   endif()
 endif()
 
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${flag} ${flag_c} " CACHE STRING "compile flags" FORCE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag} ${flag_cpp} " CACHE STRING "compile flags" FORCE)
+if(ENABLE_CCACHE)
+    message(WARNING "  === ccache is enabled === ")
+    find_program(CCACHE_FOUND ccache)
 
-set(INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
-set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-set(INSTALL_TEST_DIR "${CMAKE_INSTALL_PREFIX}/test")
+    if(CCACHE_FOUND)
+        message(WARNING "  === ccache found === ")
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+        set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+    endif(CCACHE_FOUND)
+endif()
 
 add_subdirectory(galasm)
 add_subdirectory(galasm_main)
@@ -110,14 +172,16 @@ include (InstallRequiredSystemLibraries)
 
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(CPACK_RPM_SPEC_INSTALL_POST "/bin/true")
-endif()
-
-message(WARNING "  === Building Debian package === ")
+message(STATUS "  === Building Debian package === ")
 set(CPACK_GENERATOR "DEB")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Egil Rasmussen")
-# set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_SOURCE_DIR}/postinst)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${Package_maintainer})
+
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    ${CMAKE_CURRENT_SOURCE_DIR}/debian/preinst
+    ${CMAKE_CURRENT_SOURCE_DIR}/debian/postinst
+    ${CMAKE_CURRENT_SOURCE_DIR}/debian/prerm
+    ${CMAKE_CURRENT_SOURCE_DIR}/debian/postrm
+)
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")

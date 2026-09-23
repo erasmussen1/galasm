@@ -28,7 +28,5 @@ write_basic_package_version_file(
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${INSTALL_LIB_DIR} )
 
-if (BUILD_UNITTEST)
-  add_subdirectory(test)
-endif()
+add_subdirectory(test)
 

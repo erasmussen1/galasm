@@ -1,15 +1,13 @@
 #!/bin/bash
 #
-#
-#
 set -o nounset
 # set -x
 
-
 WORKING_DIR="$(cd $(dirname $0) && cd .. && pwd)"
 
+
 # Script version
-SCRIPT_VERSION="1.00.02.00"
+SCRIPT_VERSION="1.00.06.00"
 
 # default out of source directory
 buildDir="build"
@@ -21,25 +19,29 @@ NP=1
 if [[ -e /proc/cpuinfo ]]
 then
     NP=$(cat /proc/cpuinfo | grep ^processor | wc -l)
-    NP=$(( $NP * 2 ))
 fi
 
 die()
 {
-    echo "======================================"
-    echo " $*"
-    echo "======================================"
+    cat <<LAB_DIE
+======================================
+ $*
+======================================
+LAB_DIE
+
     exit 1
 }
 
 makeBuildDir()
 {
     [[ $1 -eq 1 ]] && [[ -d $buildDir ]] && rm -rf $buildDir
-    mkdir -p $buildDir
+    [[ $1 -eq 2 ]] && [[ ! -d $buildDir ]] && mkdir -p $buildDir
 }
 
 generateBuildSystem()
 {
+    makeBuildDir 2
+
     echo "======================"
     for a in $*
     do
@@ -56,21 +58,21 @@ generateBuildSystem()
 
 buildApp()
 {
-    pushd $buildDir
+    makeBuildDir 2
 
-    make -j $NP
+    pushd ${buildDir}
+    make -j ${NP}
     [[ $? -ne 0 ]] && die "ERR: failed to build project $(pwd)"
-
     popd
 
 }
 
 buildPackage()
 {
+    makeBuildDir 2
+
     pushd $buildDir
-
     make package
-
     popd
 
     return 0
@@ -78,6 +80,8 @@ buildPackage()
 
 runUnitTest()
 {
+    makeBuildDir 2
+
     pushd $buildDir
     ctest -VV
     [[ $? -ne 0 ]] && die "ERR: unit-tests failed $(pwd)"
@@ -94,17 +98,21 @@ usage:
     -p    Build install package
     -r    Release build
 
-    -h    Show this help
+    -h    Show this menu
 
 
 Advanced:
     -d    Delete build directory
     -c    Generate build system
     -e    Build project
+    -l    Build with shared libraries
     -b    Build benchmarks
     -g    Run all unit-tests
     -C    Build with Clang compiler
     -s    Build with sanitizer flags on
+    -S    Build and run cppcheck
+    -T    Build and run clang-tidy
+    -P    Build property based tests
 
 
 LAB_USAGE
@@ -121,14 +129,17 @@ buildOnlyFlag=0
 buildForBenchmarkFlag=0
 clangToolchainFlag=0
 toolchain=" "
+buildRelease=" "
 buildType=" "
 sanitizer=" "
 fuzzer=" "
 benchmark=" "
 unittest=" "
-buildShared=" "
+runtidy=" "
+runcppcheck=" "
+runpropertycheck=" "
 
-while getopts "dcegbCsfrlGphu" opt
+while getopts "dcegbCsfrTSPGprlhu" opt
 do
     case $opt in
         d)
@@ -149,7 +160,7 @@ do
             benchmark="-DBUILD_BENCHMARK=ON"
             ;;
         C)
-            toolchain="-DCMAKE_TOOLCHAIN_FILE=../toolchain_clang.cmake"
+            toolchain="-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchain_clang.cmake"
             ;;
         s)
             sanitizer="-DENABLE_SANITIZER=ON"
@@ -158,10 +169,19 @@ do
             fuzzer="-DBUILD_FUZZER=ON"
             ;;
         r)
-            buildType="-DRELEASE_BUILD=ON"
+            buildRelease="-DRELEASE_BUILD=ON"
+            ;;
+        T)
+            runtidy="-DRUN_CLANG_TIDY=ON"
+            ;;
+        S)
+            runcppcheck="-DENABLE_CPPCHECK=ON"
+            ;;
+        P)
+            runpropertycheck="-DENABLE_RAPIDCHECK=ON"
             ;;
         l)
-            buildShared="-DBUILD_SHARED=ON"
+            buildType="-DBUILD_SHARED=ON"
             ;;
         G)
             clearBuildFlag=1
@@ -183,7 +203,7 @@ done
 
 
 
-pushd $WORKING_DIR
+pushd ${WORKING_DIR}
 
 if [[ $# -eq 0 ]]
 then
@@ -194,7 +214,7 @@ fi
 
 makeBuildDir $clearBuildFlag
 
-[[ $generateBuildSystemFlag -ne 0 ]] && generateBuildSystem "${toolchain} ${sanitizer} ${unittest} ${benchmark} ${fuzzer} ${buildShared}"
+[[ $generateBuildSystemFlag -ne 0 ]] && generateBuildSystem "${toolchain} ${buildRelease} ${buildType} ${sanitizer} ${unittest} ${benchmark} ${fuzzer} ${runtidy} ${runcppcheck} ${runpropertycheck}"
 [[ $buildOnlyFlag -ne 0 ]] && buildApp
 [[ $runUnitTestFlag -ne 0 ]] && runUnitTest
 [[ ${buildPackageFlag} -ne 0 ]] && buildPackage
