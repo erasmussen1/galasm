@@ -82,6 +82,4 @@ Read the **[User Guide](doc/user_guide.md)** to learn more!
 
 ```
 
-## License
 
-This project is available under the [MIT License](LICENSE).
