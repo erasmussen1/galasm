@@ -226,4 +226,3 @@ int GetBaseName(const char* filename, const char* ext, char* newfilename) {
 
     return 0;
 }
-

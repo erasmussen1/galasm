@@ -145,4 +145,3 @@ void WriteSpaces(FILE* fp, int numof);
 void WriteRow(FILE* fp, int row, int num_of_col);
 
 void WriteFuseFile(char* filename, JedecStruct_t* jedec, Config_t* cfg);
-

@@ -49,5 +49,4 @@ typedef struct {
 } Config_t;
 
 
-
-#endif // GALASM_TYPES_H
+#endif  // GALASM_TYPES_H

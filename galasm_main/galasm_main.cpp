@@ -20,7 +20,7 @@ struct Options {
     bool JedecSecBit{false};
     bool JedecFuseChk{false};
     bool verbose{false};
-    bool unixNewline {false};
+    bool unixNewline{false};
 
     void printOptions(void) {
         std::cout << "PLD filename: " << filename << "\n";
@@ -29,13 +29,16 @@ struct Options {
 
 
 static void printVersion(void) {
-    std::cout << PROJECT_NAME ", Portable GAL Assembler\n"
-                 "Original sources base of Christian Habermann's code\n"
-                 "  Version " PROJECT_VERSION "." GIT_COMMIT_HASH "\n"
-                 "  Branch  " GIT_BRANCH "\n"
-                 "  Build date: " __DATE__ " " __TIME__
-                 "\n"
-                 "\n";
+    std::cout << PROJECT_NAME
+        ", Portable GAL Assembler\n"
+        "Original sources base of Christian Habermann's code\n"
+        "  Version " PROJECT_VERSION "." GIT_COMMIT_HASH
+        "\n"
+        "  Branch  " GIT_BRANCH
+        "\n"
+        "  Build date: " __DATE__ " " __TIME__
+        "\n"
+        "\n";
 }
 
 static void printUsage(void) {
@@ -52,7 +55,7 @@ static void printUsage(void) {
                  "    -v   Show version\n"
                  "    -h   Show help menu\n"
                  "    -f   PLD input filename\n"
-                 "\n\n" ;
+                 "\n\n";
 }
 
 static void parseCmdline(int argc, char** argv, Options& opts) {
